@@ -1,0 +1,31 @@
+{
+    "name": "terminal",
+    "main": "./build/index.js",
+    "version": "0.1.0",
+    "type": "module",
+    "dependencies": {
+        "@j-cake/jcake-utils": "latest",
+        "chalk": "latest"
+    },
+    "scripts": {
+        "build": "mkjson build/\\* install"
+    },
+    "devDependencies": {
+        "@types/node": "latest",
+        "@j-cake/mkjson": "latest",
+        "electron": "latest",
+        "typescript": "latest",
+        "esbuild": "latest",
+		"obsidian": "latest"
+    },
+    "imports": {
+        "#app": "./build/index.js"
+    },
+    "deploy": {
+        "main": "run.js",
+        "imports": {
+            "#app": "./index.js"
+        },
+        "scripts": null
+    }
+}

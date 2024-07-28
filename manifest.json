@@ -1,0 +1,10 @@
+{
+	"id": "obsidian-os/terminal",
+	"name": "Terminal",
+	"version": "1.0.0",
+	"minAppVersion": "0.15.0",
+	"description": "Provides an in-app terminal",
+	"author": "Jake Schneider",
+	"authorUrl": "https://jschneiderprojects.com.au",
+	"isDesktopOnly": false
+}
