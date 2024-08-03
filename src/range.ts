@@ -69,4 +69,14 @@ export class Cell {
 
         return `${[...this.col.toString(26).toUpperCase()].map(i => alphabet[alphabet2.indexOf(i)])}${this.row + 1}`;
     }
+
+    public moveVertically(amount: number = 1): Cell {
+        this.row = Math.max(0, this.row + amount);
+        return this;
+    }
+
+    public moveHorizontally(amount: number = 1): Cell {
+        this.col = Math.max(0, this.col + amount);
+        return this;
+    }
 }

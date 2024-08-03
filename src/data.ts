@@ -1,5 +1,5 @@
 import {FrontMatter} from "./spreadsheet.js";
-import {editorLivePreviewField, parseYaml, stringifyYaml} from "obsidian";
+import {parseYaml, stringifyYaml} from "obsidian";
 import * as iter from "@j-cake/jcake-utils/iter";
 import {Cell} from "./range.js";
 
@@ -9,21 +9,22 @@ export const typeDefList: Record<string, ((value: string) => any)> = {
 
 export type Row<FM extends FrontMatter> = string[];
 
-export default class DataSource<FM extends FrontMatter> {
+export default class DataSource<FM extends Partial<FrontMatter>> {
     private onChange: () => void = () => void 0;
 
-    public data: Row<FM>[] = [];
+    private raw: Row<FM>[] = [];
 
-    frontMatter: FM = {} as any;
+    // If not specified, assume the following defaults.
+    frontMatter: FM = { urlEscaped: true } as FM;
 
     parsers = typeDefList;
 
     serialise(): string {
-        return `---\n${stringifyYaml(this.frontMatter)}\n---\n${this.data.map(i => i.join(this.frontMatter.columnSeparator ??= ';')).join('\n')}`;
+        return `---\n${stringifyYaml(this.frontMatter)}\n---\n${this.raw.map(i => i.join(this.frontMatter.columnSeparator ??= ';')).join('\n')}`;
     }
 
     clear() {
-        this.data = [];
+        this.raw = [];
         this.onChange();
     }
 
@@ -42,7 +43,7 @@ export default class DataSource<FM extends FrontMatter> {
         if (!this.frontMatter.columnTitles)
             this.frontMatter.columnTitles = rows.shift()?.split(separator) ?? [];
 
-        this.data =  rows
+        this.raw = rows
             .map(line => {
                 const column = [];
 
@@ -59,7 +60,11 @@ export default class DataSource<FM extends FrontMatter> {
     }
 
     private parseFrontMatter(frontMatter: string): number {
-        this.frontMatter = parseYaml(frontMatter);
+        console.log(this.frontMatter, parseYaml(frontMatter));
+        this.frontMatter = {
+            ...this.frontMatter,
+            ...parseYaml(frontMatter)
+        };
         return frontMatter.length;
     }
 
@@ -71,12 +76,29 @@ export default class DataSource<FM extends FrontMatter> {
         return this.frontMatter.columnTitles ?? [];
     }
 
+    public get data(): Cell[][] {
+        return this.raw.map((i, a) => i.map((j, b) => new Cell(a, b)));
+    }
+
     public valueAt(cell: Cell): string {
-        return this.data[cell.row][cell.col];
+        if (!this.raw[cell.row])
+            this.raw[cell.row] = new Array(Math.max(cell.col, this.columnNames.length)).fill("").map(_ => "");
+
+        if (this.frontMatter.urlEscaped)
+            return decodeURIComponent(this.raw[cell.row][cell.col]);
+        else
+            return this.raw[cell.row][cell.col];
     }
 
     public setValueAt(cell: Cell, value: string) {
-        this.data[cell.row][cell.col] = value;
+        if (!this.raw[cell.row])
+            this.raw[cell.row] = new Array(Math.max(cell.col, this.columnNames.length)).fill("").map(_ => "");
+
+        if (this.frontMatter.urlEscaped)
+            this.raw[cell.row][cell.col] = encodeURIComponent(value);
+        else
+            this.raw[cell.row][cell.col] = value;
+
         this.onChange();
     }
 }
@@ -86,9 +108,10 @@ export class InfiniteIterator<T> {
         return this.iter();
     }
 
-    constructor(private readonly data: T) {}
+    constructor(private readonly data: T) {
+    }
 
-    private *iter(): Generator<T> {
+    private* iter(): Generator<T> {
         while (true)
             yield this.data;
     }

@@ -69,13 +69,21 @@ thead {
 td {
     line-height: var(--table-line-height);
     font-size: var(--table-text-size);
-    color: var(--table-text-color);
+    color: var(--text-muted);
 
     white-space: var(--table-white-space);
 
     padding: 4px 8px;
 
     border: var(--table-border-width) solid var(--table-border-color);
+
+    box-sizing: border-box;
+}
+
+td.editing {
+    /*border: 4px solid hsl(var(--accent-h), var(--accent-s), var(--accent-l));*/
+    background: var(--code-background);
+    color: var(--table-text-color);
 }
 
 .table-widget, tbody {

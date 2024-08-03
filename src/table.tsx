@@ -7,39 +7,16 @@ interface TableProps {
     data: DataSource<any>,
 }
 
-interface TableState {
-    data: DataSource<any>,
-
-    selected: Range[],
-
-    columnWidths: number[];
-    rowHeights: number[];
-
-    dragStart: Cell | null,
-
-    cellRef: React.RefObject<HTMLTableCellElement>[],
-    tableBodyRef: React.RefObject<HTMLTableSectionElement>
-    tableHeadRef: React.RefObject<HTMLTableSectionElement>
-
-    formula: React.RefObject<HTMLTextAreaElement>,
-    formulaContent: string,
-
-    manualSelection: string
-}
-
 type State<T> = {
     state: T,
     setState: React.Dispatch<React.SetStateAction<T>>
 };
 
-const _if = function <Condition>(condition: Condition, callback: () => any): boolean {
-    if (condition)
-        return (void callback()) || true;
-    else
-        return false;
-}
-
-export type SelectionState = { selected: Range[], dragStart: Cell | null, cell: Cell | null };
+export type SelectionState = {
+    selected: Range[],
+    dragStart: Cell | null,
+    cell: Cell | null,
+};
 export type DimensionState = { columns: number[], rows: number[] };
 
 export default function Table({data}: TableProps) {
@@ -47,7 +24,7 @@ export default function Table({data}: TableProps) {
     const [selected, setSelected] = React.useState<SelectionState>({
         selected: [],
         dragStart: null,
-        cell: null
+        cell: null,
     });
     const [dimensions, setDimensions] = React.useState<DimensionState>({
         columns: [],
@@ -82,7 +59,6 @@ export default function Table({data}: TableProps) {
         } else return references.cells[addr];
     }
 
-    // useEffect(() => void _if(selected.cell, () => data.setValueAt(selected.cell!, formula)), [formula]);
     useEffect(() => {
         references.formula.current?.focus();
         references.formula.current?.select();
@@ -107,7 +83,10 @@ export default function Table({data}: TableProps) {
 
             <textarea
                 ref={references.formula}
-                onChange={e => selected.cell ? data.setValueAt(selected.cell!, e.target.value) : null}
+                onChange={function (e) {
+                    if (selected.cell)
+                        data.setValueAt(selected.cell!, e.target.value);
+                }}
                 value={selected.cell ? data.valueAt(selected.cell!) : ''}
                 disabled={!selected.cell}
                 autoFocus={true}
@@ -123,7 +102,8 @@ export default function Table({data}: TableProps) {
             {data.data.map((cells, row) => <tr
                 data-row-number={row}
                 key={`table-row-${row}`}>
-                {cells.map((value, col) => <td
+                {cells.map((cell, col) => <td
+                    className={selected.cell?.eq(new Cell(row, col)) ? "editing" : ""}
                     key={`table-cell-${new Cell(row, col).toString()}`}
                     ref={getCell(new Cell(row, col))}
 
@@ -137,7 +117,7 @@ export default function Table({data}: TableProps) {
                         setState: setSelected
                     })}
                     data-address={new Cell(row, col).toString()}
-                >{value}</td>)}
+                >{data.valueAt(cell)}</td>)}
             </tr>)}
             <Selection
                 ranges={selected.selected}
@@ -210,13 +190,5 @@ export function finishSelection(e: React.MouseEvent, cell: Cell, selection: Stat
 export function getActiveCell(selected: Range[]): Cell | null {
     if (selected.reduce((a, j) => a + j.area, 0) > 0)
         return selected[0].topLeft;
-    else return null;
-
-    // if (selected.reduce((a, i) => a + i.area, 0) != 1)
-    //     return null;
-    //
-    // return new Cell(
-    //     Math.min(...selected.map(i => [i.to.row, i.from.row]).flat()),
-    //     Math.min(...selected.map(i => [i.to.col, i.from.col]).flat())
-    // );
+    else return null
 }

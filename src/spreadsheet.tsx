@@ -14,7 +14,8 @@ export interface FrontMatter extends Record<string, any> {
     columnTitles?: string[],
     rowTitles?: string[],
     allowedTypes?: string[],
-    columnSeparator?: string
+    columnSeparator?: string,
+    urlEscaped?: boolean
 }
 
 export default class Spreadsheet extends TextFileView {
