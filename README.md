@@ -1,3 +1,4 @@
-# Terminal Plugin
+# Spreadsheet
 
-A simplistic terminal based on xterm.js to provide a terminal which you can use for all your system-manipulation needs
+Spreadsheet is an Obsidian plugin which follows the Obsidian mindset of open-standards and supports rich spreadsheet
+handling through CSV.

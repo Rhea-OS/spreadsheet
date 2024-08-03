@@ -1,9 +1,9 @@
 {
-	"id": "obsidian-os/terminal",
-	"name": "Terminal",
+	"id": "obsidian-os/spreadsheet",
+	"name": "Spreadsheet",
 	"version": "1.0.0",
 	"minAppVersion": "0.15.0",
-	"description": "Provides an in-app terminal",
+	"description": "Provides a spreadsheet system",
 	"author": "Jake Schneider",
 	"authorUrl": "https://jschneiderprojects.com.au",
 	"isDesktopOnly": false
