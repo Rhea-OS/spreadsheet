@@ -1,23 +1,48 @@
-import {FrontMatter} from "./spreadsheet.js";
 import {parseYaml, stringifyYaml} from "obsidian";
-import * as iter from "@j-cake/jcake-utils/iter";
+
+import {FrontMatter} from "./spreadsheet.js";
 import {Cell} from "./range.js";
 
-export const typeDefList: Record<string, ((value: string) => any)> = {
-    raw: column => column,
-} as const;
+export const DEFAULT_COLUMN_WIDTH = 128;
+export const MIN_COLUMN_WIDTH = 24;
 
-export type Row<FM extends FrontMatter> = string[];
+export const DEFAULT_ROW_HEIGHT = 28;
+export const MIN_ROW_HEIGHT = 6;
+
+export const typeDef: Record<string, Type<any>> = {
+    raw: {
+        fromRaw: raw => raw,
+        intoRaw: raw => raw
+    },
+    date: {
+        fromRaw: raw => new Date(raw),
+        intoRaw: (date: Date) => `${date
+            .getDate()
+            .toString(10)
+            .padStart(2, '0')}-${(date
+            .getMonth() + 1)
+            .toString(10)
+            .padStart(2, '0')}-${date.getFullYear()
+            .toString(10)
+            .padStart(4, '0')} ${date.getHours()
+            .toString(10)
+            .padStart(2, '0')}:${date.getMinutes()
+            .toString(10)
+            .padStart(2, '0')}:${date.getSeconds()
+            .toString(10)
+            .padStart(2, '0')}`
+    }
+} as const;
 
 export default class DataSource<FM extends Partial<FrontMatter>> {
     private onChange: () => void = () => void 0;
 
-    private raw: Row<FM>[] = [];
+    private raw: string[][] = [];
 
     // If not specified, assume the following defaults.
-    frontMatter: FM = { urlEscaped: true } as FM;
+    public frontMatter: FM = { urlEscaped: true } as FM;
 
-    parsers = typeDefList;
+    typeDef: Record<string, Type<any>> = typeDef;
 
     serialise(): string {
         return `---\n${stringifyYaml(this.frontMatter)}\n---\n${this.raw.map(i => i.join(this.frontMatter.columnSeparator ??= ';')).join('\n')}`;
@@ -43,28 +68,14 @@ export default class DataSource<FM extends Partial<FrontMatter>> {
         if (!this.frontMatter.columnTitles)
             this.frontMatter.columnTitles = rows.shift()?.split(separator) ?? [];
 
-        this.raw = rows
-            .map(line => {
-                const column = [];
-
-                const iterator = zip(iter.IterSync(line.split(separator)), this.frontMatter.columnTypes ?? new InfiniteIterator("raw"));
-
-                for (const [value, parser] of iterator)
-                    column.push((this.parsers[parser] ?? this.parsers.raw)(value));
-
-                return column;
-            });
+        this.raw = rows.map(line => line.split(separator));
 
         this.onChange();
         return this;
     }
 
     private parseFrontMatter(frontMatter: string): number {
-        console.log(this.frontMatter, parseYaml(frontMatter));
-        this.frontMatter = {
-            ...this.frontMatter,
-            ...parseYaml(frontMatter)
-        };
+        Object.assign(this.frontMatter, parseYaml(frontMatter));
         return frontMatter.length;
     }
 
@@ -76,11 +87,27 @@ export default class DataSource<FM extends Partial<FrontMatter>> {
         return this.frontMatter.columnTitles ?? [];
     }
 
+    public get columnWidths(): number[] {
+        if (!this.frontMatter?.columnWidths)
+            this.frontMatter.columnWidths = new Array(this.columnNames.length)
+                .fill(DEFAULT_COLUMN_WIDTH);
+
+        return this.frontMatter.columnWidths;
+    }
+
+    public get rowHeights(): number[] {
+        if (!this.frontMatter?.rowHeights)
+            this.frontMatter.rowHeights = new Array(this.data.length)
+                .fill(DEFAULT_ROW_HEIGHT);
+
+        return this.frontMatter.rowHeights!;
+    }
+
     public get data(): Cell[][] {
         return this.raw.map((i, a) => i.map((j, b) => new Cell(a, b)));
     }
 
-    public valueAt(cell: Cell): string {
+    public rawValueAt(cell: Cell): string {
         if (!this.raw[cell.row])
             this.raw[cell.row] = new Array(Math.max(cell.col, this.columnNames.length)).fill("").map(_ => "");
 
@@ -90,7 +117,7 @@ export default class DataSource<FM extends Partial<FrontMatter>> {
             return this.raw[cell.row][cell.col];
     }
 
-    public setValueAt(cell: Cell, value: string) {
+    public setRawValueAt(cell: Cell, value: string) {
         if (!this.raw[cell.row])
             this.raw[cell.row] = new Array(Math.max(cell.col, this.columnNames.length)).fill("").map(_ => "");
 
@@ -101,33 +128,56 @@ export default class DataSource<FM extends Partial<FrontMatter>> {
 
         this.onChange();
     }
-}
 
-export class InfiniteIterator<T> {
-    [Symbol.iterator]() {
-        return this.iter();
+    public typeof(cell: Cell): string {
+        const addr = cell.toString();
+
+        const explicit = Object.entries(this.frontMatter?.explicitTypes ?? {})
+            .find(([key, _]) => key.toLowerCase() == addr.toLowerCase());
+
+        if (explicit && explicit[1] in this.typeDef)
+            return explicit[1];
+
+        const column = this.frontMatter?.columnTypes?.[cell.col];
+
+        if (column && column in this.typeDef)
+            return column;
+
+        return 'raw';
     }
 
-    constructor(private readonly data: T) {
-    }
+    public valueAt<T>(cell: Cell): Datum<T> {
+        const ser = () => this.typeDef[this.typeof(cell)] ?? this.typeDef.raw;
 
-    private* iter(): Generator<T> {
-        while (true)
-            yield this.data;
-    }
-}
+        return {
+            typeName: () => this.typeof(cell),
 
-export function zip<A, B>(iter1: Iterable<A>, iter2: Iterable<B>): iter.iterSync.Iter<[A, B]> {
-    const zip = function* (iter1: Iterable<A>, iter2: Iterable<B>): Generator<[A, B]> {
-        for (const i of iter1) {
-            const next = iter2[Symbol.iterator]().next();
+            // TODO: handle errors gracefully
+            fromRaw: value => this.setRawValueAt(cell, value),
+            intoRaw: () => this.rawValueAt(cell),
 
-            yield [i, next.value];
-
-            if (next.done)
-                break;
+            set: value => this.setRawValueAt(cell, ser().intoRaw(value)),
+            get: () => ser().fromRaw(this.rawValueAt(cell))
         }
     }
 
-    return iter.IterSync(zip(iter1, iter2));
+    public addRow() {
+        this.data.push(new Array(this.columnNames.length).fill(""));
+        this.onChange();
+    }
+}
+
+export interface Type<T> {
+    fromRaw(raw: string): T,
+    intoRaw(datum: T): string,
+}
+
+export interface Datum<T> {
+    typeName: () => string;
+
+    fromRaw(raw: string): void;
+    intoRaw(): string;
+
+    get(): T,
+    set(value: T): void;
 }

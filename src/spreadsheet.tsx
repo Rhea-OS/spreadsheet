@@ -8,11 +8,13 @@ export const SPREADSHEET_VIEW = "spreadsheet-view";
 
 export interface FrontMatter extends Record<string, any> {
     columnTypes?: string[],
-    rowTypes?: string[],
+    explicitTypes?: { [cell in string]: string },
     constrainToDefinedColumns?: boolean,
-    constrainToDefinedRows?: boolean,
+
+    columnWidths?: number[],
+    rowHeights?: number[],
+
     columnTitles?: string[],
-    rowTitles?: string[],
     allowedTypes?: string[],
     columnSeparator?: string,
     urlEscaped?: boolean
@@ -60,8 +62,6 @@ export default class Spreadsheet extends TextFileView {
     protected async onOpen(): Promise<void> {
         const spreadsheet = rdom.createRoot(this.contentEl);
 
-        spreadsheet.render(<section className={"spreadsheet-container"}>
-            <Table data={this.dataSource}/>
-        </section>);
+        spreadsheet.render(<Table data={this.dataSource}/>);
     }
 }
