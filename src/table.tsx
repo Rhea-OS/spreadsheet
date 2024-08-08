@@ -1,7 +1,9 @@
 import React from 'react';
+import * as icon from 'lucide-react';
+import * as obs from 'obsidian';
 
 import DataSource, {DEFAULT_COLUMN_WIDTH, DEFAULT_ROW_HEIGHT, MIN_COLUMN_WIDTH, MIN_ROW_HEIGHT} from "./data.js";
-import Range, {Cell} from "./range.js";
+import Range, {Cell, Vector} from "./range.js";
 import DataVisualiser from "./visualiser.js";
 
 interface TableProps {
@@ -15,7 +17,7 @@ type State<T> = {
 
 export type SelectionState = {
     selected: Range[],
-    dragStart: Cell | null,
+    dragStart: Cell | Vector | null,
     cell: Cell | null,
     hoverCell: Cell | null
 };
@@ -137,7 +139,8 @@ export default function Table({data}: TableProps) {
                      style={{
                          gridColumn: col + 2,
                          gridRow: 1
-                     }}>
+                     }}
+                    onContextMenu={e => headerContextMenu(e)}>
                     <div className={"column-title"}>
                         {column} {data.frontMatter?.columnTypes?.[col] ?
                         <div className={"nav-file-tag"}>{data.frontMatter?.columnTypes?.[col]}</div> : null}
@@ -148,7 +151,10 @@ export default function Table({data}: TableProps) {
                             x: e.clientX,
                             y: e.clientY
                         },
-                        prevSize: {width: data.columnWidths[col] ?? DEFAULT_COLUMN_WIDTH, height: e.currentTarget.innerHeight},
+                        prevSize: {
+                            width: data.columnWidths[col] ?? DEFAULT_COLUMN_WIDTH,
+                            height: e.currentTarget.innerHeight
+                        },
                         onResize: size => data.columnWidths[col] = Math.max(size.width, MIN_COLUMN_WIDTH)
                     })}/>
                 </div>)}
@@ -159,8 +165,9 @@ export default function Table({data}: TableProps) {
                 style={{
                     gridColumn: 1,
                     gridRow: row + 2
-                }}>
-                <div className={"row-title"}>{row}</div>
+                }}
+                onContextMenu={e => headerContextMenu(e)}>
+                <div className={"row-title"}>{row + 1}</div>
                 <span
                     className={"resize-handle horizontal"}
                     onMouseDown={e => setResize({
@@ -169,7 +176,10 @@ export default function Table({data}: TableProps) {
                             x: e.clientX,
                             y: e.clientY
                         },
-                        prevSize: {height: data.rowHeights[row] ?? DEFAULT_COLUMN_WIDTH, width: e.currentTarget.innerWidth},
+                        prevSize: {
+                            height: data.rowHeights[row] ?? DEFAULT_COLUMN_WIDTH,
+                            width: e.currentTarget.innerWidth
+                        },
                         onResize: size => data.rowHeights[row] = Math.max(size.height, MIN_ROW_HEIGHT)
                     })}/>
             </div>)}
@@ -199,9 +209,30 @@ export default function Table({data}: TableProps) {
                 <DataVisualiser data={data.valueAt(new Cell(row, col))}/>
             </div>))}
 
+            <div
+                className={"add-btn"}
+                 style={{
+                    gridRow: "1 / -1",
+                    gridColumn: data.columnNames.length + 2
+                }}
+                tabIndex={0}
+                onClick={e => data.insertColumn()}>
+                <icon.BetweenVerticalStart size={16}/>
+            </div>
+            <div
+                className={"add-btn"}
+                 style={{
+                    gridRow: data.data.length + 2,
+                    gridColumn: "1 / -1"
+                }}
+                tabIndex={0}
+                onClick={e => data.insertRow()}>
+                <icon.BetweenHorizontalStart size={16}/>
+            </div>
+
             <Selection
                 ranges={selected.selected}
-                current={selected.dragStart && selected.hoverCell ? new Range(selected.dragStart, selected.hoverCell) : null}
+                current={selected.dragStart && selected.hoverCell ? selected.dragStart instanceof Cell ? new Range(selected.dragStart, selected.hoverCell) : Range.fromVector(selected.dragStart, selected.hoverCell) : null}
                 tableBodyRef={references.tbody}
                 getRef={cell => getCell(cell)?.current?.getBoundingClientRect()!}/>
         </div>
@@ -236,7 +267,7 @@ export function Selection(props: {
 }
 
 export function finishSelection(e: React.MouseEvent, cell: Cell, selection: State<SelectionState>) {
-    const range = new Range(selection.state.dragStart ?? cell, cell);
+    const range = selection.state.dragStart instanceof Vector ? Range.fromVector(selection.state.dragStart, cell) : new Range(selection.state.dragStart ?? cell, cell);
 
     let newSelection: Range[] = [];
 
@@ -277,4 +308,16 @@ export function getActiveCell(selected: Range[]): Cell | null {
     if (selected.reduce((a, j) => a + j.area, 0) > 0)
         return selected[0].topLeft;
     else return null
+}
+
+export function headerContextMenu(e: React.MouseEvent) {
+    const menu = new obs.Menu();
+
+    menu.addSeparator();
+    menu.addItem(item => item
+        .setIcon("trash-2")
+        .setTitle("Delete")
+        .onClick(e => {}));
+
+    menu.showAtMouseEvent(e.nativeEvent);
 }

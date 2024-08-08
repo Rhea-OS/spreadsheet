@@ -232,3 +232,8 @@ thead td {
 .selection-range.in-progress {
     border-color: var(--text-accent);
 }
+
+.add-btn {
+    display: flex;
+    justify-content: center;
+}

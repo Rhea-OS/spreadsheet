@@ -6,9 +6,10 @@
     "dependencies": {
         "@j-cake/jcake-utils": "latest",
         "chalk": "latest",
+        "expressions": "link:../expressions",
+        "lucide-react": "^0.424.0",
         "react": "latest",
-        "react-dom": "latest",
-        "expressions": "link:../expressions"
+        "react-dom": "latest"
     },
     "scripts": {
         "build:plugin": "esbuild src/main.ts --outdir=build --bundle --sourcemap --platform=node --format=cjs --external:obsidian --external:electron",
@@ -24,6 +25,7 @@
         "@j-cake/mkjson": "latest",
         "@types/node": "latest",
         "@types/react": "latest",
+        "@types/react-dom": "^18.3.0",
         "electron": "latest",
         "esbuild": "latest",
         "obsidian": "latest",

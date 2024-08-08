@@ -2,6 +2,10 @@ export default class Range {
     public constructor(public from: Cell, public to: Cell) {
     }
 
+    static fromVector(vector: Vector, end: Cell): Range {
+        // TODO: Implement
+    }
+
     public eq(b: Range): boolean {
         return this.from.eq(b.from) && this.to.eq(b.to);
     }
@@ -78,5 +82,15 @@ export class Cell {
     public moveHorizontally(amount: number = 1): Cell {
         this.col = Math.max(0, this.col + amount);
         return this;
+    }
+}
+
+export class Vector extends Range {
+    static fromRow(row: number): Vector {
+
+    }
+
+    static fromCol(col: number): Vector {
+
     }
 }

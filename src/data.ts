@@ -37,7 +37,7 @@ export const typeDef: Record<string, Type<any>> = {
 export default class DataSource<FM extends Partial<FrontMatter>> {
     private onChange: () => void = () => void 0;
 
-    private raw: string[][] = [];
+    private raw: string[][] = [[""]];
 
     // If not specified, assume the following defaults.
     public frontMatter: FM = { urlEscaped: true } as FM;
@@ -161,8 +161,14 @@ export default class DataSource<FM extends Partial<FrontMatter>> {
         }
     }
 
-    public addRow() {
-        this.data.push(new Array(this.columnNames.length).fill(""));
+    public insertColumn() {
+        this.columnNames.push(`col ${this.columnNames.length + 1}`);
+        this.raw.forEach(i => i.push(""));
+        this.onChange();
+    }
+
+    public insertRow() {
+        this.raw.push(new Array(this.columnNames.length).fill(""));
         this.onChange();
     }
 }
