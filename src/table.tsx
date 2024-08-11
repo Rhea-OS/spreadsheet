@@ -1,6 +1,11 @@
 import React from "react"
 import {Value} from "./spreadsheet.js";
-import {DEFAULT_COLUMN_WIDTH, DEFAULT_ROW_HEIGHT} from "./data.js";
+
+export const DEFAULT_COLUMN_WIDTH = 128;
+export const MIN_COLUMN_WIDTH = 24;
+
+export const DEFAULT_ROW_HEIGHT = 28;
+export const MIN_ROW_HEIGHT = 6;
 
 interface TableProps {
     raw: Value[][],

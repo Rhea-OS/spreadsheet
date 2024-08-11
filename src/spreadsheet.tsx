@@ -2,10 +2,8 @@ import * as obs from "obsidian";
 import * as React from "react";
 import * as rdom from "react-dom/client";
 
-import {DEFAULT_COLUMN_WIDTH, DEFAULT_ROW_HEIGHT, MIN_COLUMN_WIDTH, MIN_ROW_HEIGHT} from "./data.js";
-import Table from "./table.js";
+import Table, {DEFAULT_COLUMN_WIDTH, DEFAULT_ROW_HEIGHT, MIN_COLUMN_WIDTH, MIN_ROW_HEIGHT} from "./table.js";
 import FormulaBar, {CellRenderer, renderers} from "./formula.js";
-import {headerContextMenu, ResizeState} from "./table2.js";
 
 export const SPREADSHEET_VIEW = "spreadsheet-view";
 
@@ -32,6 +30,16 @@ export interface Value {
 
     renderer(): CellRenderer
 }
+
+export type ResizeState = {
+    isResizing: false,
+} | {
+    isResizing: true,
+    prevMouse: { x: number, y: number },
+    prevSize: { width: number, height: number },
+    onResize: (size: { width: number, height: number }) => void
+};
+
 
 export function value(raw: string, row: number, col: number, sheet: Spreadsheet): Value {
     const watches: ((raw: string) => void)[] = [];
@@ -309,7 +317,7 @@ export function Ui(props: { sheet: Spreadsheet }) {
                         gridColumn: 1,
                         gridRow: row + 2
                     }}
-                    onContextMenu={e => headerContextMenu(e)}>
+                    onContextMenu={e => rowContextMenu(e, row, props.sheet)}>
                     <div className={"row-title"}>{row + 1}</div>
                     <span
                         className={"resize-handle horizontal"}
@@ -353,6 +361,19 @@ export function columnContextMenu(e: React.MouseEvent, col: number, sheet: Sprea
     menu.addItem(item => item
         .setIcon("trash-2")
         .setTitle("Delete Column")
+        .onClick(e => {
+        }));
+
+    menu.showAtMouseEvent(e.nativeEvent);
+}
+
+export function rowContextMenu(e: React.MouseEvent, row: number, sheet: Spreadsheet) {
+    const menu = new obs.Menu();
+
+    menu.addSeparator();
+    menu.addItem(item => item
+        .setIcon("trash-2")
+        .setTitle("Delete Row")
         .onClick(e => {
         }));
 

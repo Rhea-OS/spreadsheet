@@ -1,4 +1,4 @@
-import {App, Menu, Modal, Plugin, PluginSettingTab, TAbstractFile, TFile} from 'obsidian';
+import * as obs from 'obsidian';
 import Spreadsheet, {SPREADSHEET_VIEW} from "./spreadsheet.js";
 
 export interface Settings {
@@ -8,7 +8,7 @@ export const default_settings: Settings = {
 
 };
 
-export default class SpreadsheetPlugin extends Plugin {
+export default class SpreadsheetPlugin extends obs.Plugin {
     settings: Settings = default_settings;
 
     async onload() {
@@ -45,8 +45,8 @@ export default class SpreadsheetPlugin extends Plugin {
 	}
 }
 
-export class SettingsTab extends PluginSettingTab {
-    constructor(app: App, private plugin: SpreadsheetPlugin) {
+export class SettingsTab extends obs.PluginSettingTab {
+    constructor(app: obs.App, private plugin: SpreadsheetPlugin) {
         super(app, plugin);
     }
 
