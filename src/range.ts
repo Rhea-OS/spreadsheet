@@ -2,9 +2,9 @@ export default class Range {
     public constructor(public from: Cell, public to: Cell) {
     }
 
-    static fromVector(vector: Vector, end: Cell): Range {
-        // TODO: Implement
-    }
+    // static fromVector(vector: Vector, end: Cell): Range {
+    //     // TODO: Implement
+    // }
 
     public eq(b: Range): boolean {
         return this.from.eq(b.from) && this.to.eq(b.to);
@@ -57,6 +57,13 @@ export default class Range {
         else
             return `${this.topLeft.toString()}:${this.bottomRight.toString()}`;
     }
+
+    public normalise(maxRows: number, maxCols: number): Range {
+        this.from = new Cell(this.from.row >= 0 ? this.from.row : (maxRows - 2) - this.from.row, this.from.col >= 0 ? this.from.col : (maxCols - 2) - this.from.col);
+        this.to = new Cell(this.to.row >= 0 ? this.to.row : (maxRows - 2) - this.to.row, this.to.col >= 0 ? this.to.col : (maxCols - 2) - this.to.col);
+
+        return this;
+    }
 }
 
 export class Cell {
@@ -75,22 +82,12 @@ export class Cell {
     }
 
     public moveVertically(amount: number = 1): Cell {
-        this.row = Math.max(0, this.row + amount);
+        this.row = this.row + amount;
         return this;
     }
 
     public moveHorizontally(amount: number = 1): Cell {
-        this.col = Math.max(0, this.col + amount);
+        this.col = this.col + amount;
         return this;
-    }
-}
-
-export class Vector extends Range {
-    static fromRow(row: number): Vector {
-
-    }
-
-    static fromCol(col: number): Vector {
-
     }
 }

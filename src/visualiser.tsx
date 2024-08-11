@@ -1,6 +1,7 @@
 import React from 'react';
+import * as lux from 'luxon';
 
-import {Datum, typeDef} from "./data.js";
+import {Datum, typeDef, Valid} from "./data.js";
 
 export default function DataVisualiser<T>(props: { data: Datum<T> }) {
 
@@ -13,8 +14,12 @@ export default function DataVisualiser<T>(props: { data: Datum<T> }) {
 }
 
 export function DateVisualiser(props: { data: Datum<Date> }) {
-    const [date, setDate] = React.useState(props.data.get());
-    // React.useEffect(() => props.data.set(date), [date]);
+    React.useSyncExternalStore(onChange => props.data.watch(onChange), () => props.data.intoRaw());
 
-    return <>{typeDef['date'].intoRaw(date)}</>;
+    const data = props.data.get();
+
+    if (Valid.isValid(data))
+        return <span>{data.ok.toLocaleDateString()}</span>;
+    else
+        return <>{`Invalid date format: ${data.err}`}</>
 }

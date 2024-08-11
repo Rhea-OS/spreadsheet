@@ -3,7 +3,7 @@ import * as icon from 'lucide-react';
 import * as obs from 'obsidian';
 
 import DataSource, {DEFAULT_COLUMN_WIDTH, DEFAULT_ROW_HEIGHT, MIN_COLUMN_WIDTH, MIN_ROW_HEIGHT} from "./data.js";
-import Range, {Cell, Vector} from "./range.js";
+import Range, {Cell} from "./range.js";
 import DataVisualiser from "./visualiser.js";
 
 interface TableProps {
@@ -17,7 +17,7 @@ type State<T> = {
 
 export type SelectionState = {
     selected: Range[],
-    dragStart: Cell | Vector | null,
+    dragStart: Cell | null,
     cell: Cell | null,
     hoverCell: Cell | null
 };
@@ -100,9 +100,14 @@ export default function Table({data}: TableProps) {
             prevSize: size,
             onResize: prev.onResize
         };
-    })} onMouseUp={e => setResize({
-        isResizing: false
-    })}>
+    })} onMouseUp={function (e) {
+        if (selected.dragStart)
+            finishSelection(e, selected.hoverCell!, {
+                state: selected,
+                setState: setSelected
+            });
+        setResize({isResizing: false});
+    }}>
         <div className={"formula-bar"}>
             <input
                 type={"text"}
@@ -140,23 +145,36 @@ export default function Table({data}: TableProps) {
                          gridColumn: col + 2,
                          gridRow: 1
                      }}
-                    onContextMenu={e => headerContextMenu(e)}>
+                     onMouseDown={_ => setSelected(prev => ({
+                         selected: prev.selected,
+                         dragStart: new Cell(-1, col),
+                         hoverCell: new Cell(0, col),
+                         cell: null
+                     }))}
+                     onMouseMove={_ => setSelected(prev => prev.dragStart?.row == -1 ? ({
+                         ...prev,
+                         hoverCell: new Cell(0, col)
+                     }) : prev)}
+                     onContextMenu={e => headerContextMenu(e)}>
                     <div className={"column-title"}>
                         {column} {data.frontMatter?.columnTypes?.[col] ?
                         <div className={"nav-file-tag"}>{data.frontMatter?.columnTypes?.[col]}</div> : null}
                     </div>
-                    <span className={"resize-handle"} onMouseDown={e => setResize({
-                        isResizing: true,
-                        prevMouse: {
-                            x: e.clientX,
-                            y: e.clientY
-                        },
-                        prevSize: {
-                            width: data.columnWidths[col] ?? DEFAULT_COLUMN_WIDTH,
-                            height: e.currentTarget.innerHeight
-                        },
-                        onResize: size => data.columnWidths[col] = Math.max(size.width, MIN_COLUMN_WIDTH)
-                    })}/>
+                    <span className={"resize-handle"} onMouseDown={function (e) {
+                        setResize({
+                            isResizing: true,
+                            prevMouse: {
+                                x: e.clientX,
+                                y: e.clientY
+                            },
+                            prevSize: {
+                                width: data.columnWidths[col] ?? DEFAULT_COLUMN_WIDTH,
+                                height: e.currentTarget.innerHeight
+                            },
+                            onResize: size => data.columnWidths[col] = Math.max(size.width, MIN_COLUMN_WIDTH)
+                        });
+                        e.preventDefault()
+                    }}/>
                 </div>)}
 
             {data.data.map((_, row) => <div
@@ -166,22 +184,35 @@ export default function Table({data}: TableProps) {
                     gridColumn: 1,
                     gridRow: row + 2
                 }}
+                onMouseDown={_ => setSelected(prev => ({
+                    selected: prev.selected,
+                    dragStart: new Cell(row, -1),
+                    hoverCell: new Cell(row, 0),
+                    cell: null
+                }))}
+                onMouseMove={_ => setSelected(prev => prev.dragStart?.col == -1 ? ({
+                    ...prev,
+                    hoverCell: new Cell(row, 0)
+                }) : prev)}
                 onContextMenu={e => headerContextMenu(e)}>
                 <div className={"row-title"}>{row + 1}</div>
                 <span
                     className={"resize-handle horizontal"}
-                    onMouseDown={e => setResize({
-                        isResizing: true,
-                        prevMouse: {
-                            x: e.clientX,
-                            y: e.clientY
-                        },
-                        prevSize: {
-                            height: data.rowHeights[row] ?? DEFAULT_COLUMN_WIDTH,
-                            width: e.currentTarget.innerWidth
-                        },
-                        onResize: size => data.rowHeights[row] = Math.max(size.height, MIN_ROW_HEIGHT)
-                    })}/>
+                    onMouseDown={function (e) {
+                        setResize({
+                            isResizing: true,
+                            prevMouse: {
+                                x: e.clientX,
+                                y: e.clientY
+                            },
+                            prevSize: {
+                                height: data.rowHeights[row] ?? DEFAULT_COLUMN_WIDTH,
+                                width: e.currentTarget.innerWidth
+                            },
+                            onResize: size => data.rowHeights[row] = Math.max(size.height, MIN_ROW_HEIGHT)
+                        });
+                        e.preventDefault()
+                    }}/>
             </div>)}
 
             {data.data.map((cells, row) => cells.map((_, col) => <div
@@ -201,17 +232,13 @@ export default function Table({data}: TableProps) {
                 onMouseMove={_ => setSelected(prev => ({
                     ...prev,
                     hoverCell: new Cell(row, col)
-                }))}
-                onMouseUp={e => finishSelection(e, new Cell(row, col), {
-                    state: selected,
-                    setState: setSelected
-                })}>
+                }))}>
                 <DataVisualiser data={data.valueAt(new Cell(row, col))}/>
             </div>))}
 
             <div
                 className={"add-btn"}
-                 style={{
+                style={{
                     gridRow: "1 / -1",
                     gridColumn: data.columnNames.length + 2
                 }}
@@ -221,7 +248,7 @@ export default function Table({data}: TableProps) {
             </div>
             <div
                 className={"add-btn"}
-                 style={{
+                style={{
                     gridRow: data.data.length + 2,
                     gridColumn: "1 / -1"
                 }}
@@ -231,8 +258,10 @@ export default function Table({data}: TableProps) {
             </div>
 
             <Selection
-                ranges={selected.selected}
-                current={selected.dragStart && selected.hoverCell ? selected.dragStart instanceof Cell ? new Range(selected.dragStart, selected.hoverCell) : Range.fromVector(selected.dragStart, selected.hoverCell) : null}
+                ranges={selected.selected
+                    .map(range => range.normalise(data.numRows(), data.numCols()))}
+                current={selected.dragStart && selected.hoverCell ? new Range(selected.dragStart, selected.hoverCell)
+                    .normalise(data.numRows(), data.numCols()) : null}
                 tableBodyRef={references.tbody}
                 getRef={cell => getCell(cell)?.current?.getBoundingClientRect()!}/>
         </div>
@@ -246,15 +275,13 @@ export function Selection(props: {
     current: Range | null
 }) {
     return <>
-        {props.ranges.map((range, a) => {
-            return <div
-                key={`selection-${a}`}
-                className={"selection-range"}
-                style={{
-                    gridRow: `${range.topLeft.row + 2} / ${range.bottomRight.row + 3}`,
-                    gridColumn: `${range.topLeft.col + 2} / ${range.bottomRight.col + 3}`,
-                }}/>;
-        })}
+        {props.ranges.map((range, a) => <div
+            key={`selection-${a}`}
+            className={"selection-range"}
+            style={{
+                gridRow: `${range.topLeft.row + 2} / ${range.bottomRight.row + 3}`,
+                gridColumn: `${range.topLeft.col + 2} / ${range.bottomRight.col + 3}`,
+            }}/>)}
 
         {props.current && <div
             key={`selection-in-progress`}
@@ -267,7 +294,8 @@ export function Selection(props: {
 }
 
 export function finishSelection(e: React.MouseEvent, cell: Cell, selection: State<SelectionState>) {
-    const range = selection.state.dragStart instanceof Vector ? Range.fromVector(selection.state.dragStart, cell) : new Range(selection.state.dragStart ?? cell, cell);
+    // const range = selection.state.dragStart instanceof Vector ? Range.fromVector(selection.state.dragStart, cell) : new Range(selection.state.dragStart ?? cell, cell);
+    const range = new Range(selection.state.dragStart ?? cell, cell);
 
     let newSelection: Range[] = [];
 
@@ -317,7 +345,8 @@ export function headerContextMenu(e: React.MouseEvent) {
     menu.addItem(item => item
         .setIcon("trash-2")
         .setTitle("Delete")
-        .onClick(e => {}));
+        .onClick(e => {
+        }));
 
     menu.showAtMouseEvent(e.nativeEvent);
 }

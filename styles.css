@@ -170,6 +170,8 @@ thead td {
     flex: 1;
     display: flex;
 
+    font-weight: var(--table-header-weight);
+
     max-height: calc(100% - 4px);
 }
 

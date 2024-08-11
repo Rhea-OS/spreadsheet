@@ -7,9 +7,11 @@
         "@j-cake/jcake-utils": "latest",
         "chalk": "latest",
         "expressions": "link:../expressions",
-        "lucide-react": "^0.424.0",
+        "lucide-react": "latest",
+        "luxon": "latest",
         "react": "latest",
-        "react-dom": "latest"
+        "react-dom": "latest",
+        "chrono-node": "https://github.com/wanasit/chrono.git"
     },
     "scripts": {
         "build:plugin": "esbuild src/main.ts --outdir=build --bundle --sourcemap --platform=node --format=cjs --external:obsidian --external:electron",
@@ -23,9 +25,10 @@
     },
     "devDependencies": {
         "@j-cake/mkjson": "latest",
+        "@types/luxon": "^3.4.2",
         "@types/node": "latest",
         "@types/react": "latest",
-        "@types/react-dom": "^18.3.0",
+        "@types/react-dom": "latest",
         "electron": "latest",
         "esbuild": "latest",
         "obsidian": "latest",

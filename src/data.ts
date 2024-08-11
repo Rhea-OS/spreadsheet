@@ -1,7 +1,9 @@
 import {parseYaml, stringifyYaml} from "obsidian";
+import * as chrono from 'chrono-node';
 
 import {FrontMatter} from "./spreadsheet.js";
 import {Cell} from "./range.js";
+import {DateTime} from "luxon";
 
 export const DEFAULT_COLUMN_WIDTH = 128;
 export const MIN_COLUMN_WIDTH = 24;
@@ -11,26 +13,18 @@ export const MIN_ROW_HEIGHT = 6;
 
 export const typeDef: Record<string, Type<any>> = {
     raw: {
-        fromRaw: raw => raw,
+        fromRaw: raw => Valid.ok(raw),
         intoRaw: raw => raw
     },
     date: {
-        fromRaw: raw => new Date(raw),
-        intoRaw: (date: Date) => `${date
-            .getDate()
-            .toString(10)
-            .padStart(2, '0')}-${(date
-            .getMonth() + 1)
-            .toString(10)
-            .padStart(2, '0')}-${date.getFullYear()
-            .toString(10)
-            .padStart(4, '0')} ${date.getHours()
-            .toString(10)
-            .padStart(2, '0')}:${date.getMinutes()
-            .toString(10)
-            .padStart(2, '0')}:${date.getSeconds()
-            .toString(10)
-            .padStart(2, '0')}`
+        fromRaw(raw) {
+            const date = chrono.casual.parseDate(raw);
+            if (date)
+                return Valid.ok(DateTime.fromJSDate(date));
+            else
+                return Valid.err("Invalid date format");
+        },
+        intoRaw: (date: DateTime) => date.toLocaleString()
     }
 } as const;
 
@@ -156,6 +150,11 @@ export default class DataSource<FM extends Partial<FrontMatter>> {
             fromRaw: value => this.setRawValueAt(cell, value),
             intoRaw: () => this.rawValueAt(cell),
 
+            // watch: (onChange: () => void): () => void => {
+            //     this.watches.set(`${cell.row}:${cell.col}`, onChange);
+            //     return () =>
+            // },
+
             set: value => this.setRawValueAt(cell, ser().intoRaw(value)),
             get: () => ser().fromRaw(this.rawValueAt(cell))
         }
@@ -171,10 +170,26 @@ export default class DataSource<FM extends Partial<FrontMatter>> {
         this.raw.push(new Array(this.columnNames.length).fill(""));
         this.onChange();
     }
+
+    public numRows(): number {
+        return this.raw.length;
+    }
+
+    public numCols(): number {
+        return this.columnNames.length;
+    }
 }
 
+export type Valid<T, E> = { ok: T } | { err: E };
+export const Valid = {
+    ok: <T>(data: T): Valid<T, any> => ({ ok: data }),
+    err: <E>(err: E): Valid<any, E> => ({ err: err }),
+
+    isValid: <T, E>(valid: Valid<T, E>): valid is { ok: T } => typeof valid == "object" && ('ok' in valid && !('err' in valid))
+};
+
 export interface Type<T> {
-    fromRaw(raw: string): T,
+    fromRaw(raw: string): Valid<T, string>,
     intoRaw(datum: T): string,
 }
 
@@ -184,6 +199,8 @@ export interface Datum<T> {
     fromRaw(raw: string): void;
     intoRaw(): string;
 
-    get(): T,
+    // watch: (callback: () => void) => (() => void),
+
+    get(): Valid<T, string>,
     set(value: T): void;
 }
