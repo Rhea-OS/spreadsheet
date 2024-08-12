@@ -30,6 +30,7 @@ export namespace renderers {
 
             return <textarea
                 // className={"formula"}
+                autoFocus={true}
                 value={props.getRaw()}
                 onChange={e => props.setRaw(e.target.value)}/>
         },
@@ -55,11 +56,43 @@ export namespace renderers {
             </div>;
         },
         formula<Props extends Value>(props: Props): React.ReactNode {
-            return <></>;
+            let parsed = luxon.DateTime.fromJSDate(chrono.casual.parseDate(React.useSyncExternalStore(props.onChange, () => props.getRaw())) ?? new Date());
+
+            return <input
+                autoFocus={true}
+                type={"datetime-local"}
+                value={parsed.toISO({ includeOffset: false })!} onChange={e => props.setRaw(e.target.value)}/>;
         },
         friendlyName: {
             label: "Date & Time",
             icon: "calendar-clock"
         }
+    }
+
+    export const formula: CellRenderer = {
+        cell<Props extends Value>(props: Props): React.ReactNode {
+            return null;
+        },
+        formula<Props extends Value>(props: Props): React.ReactNode {
+            return null;
+        },
+        friendlyName: {
+            label: "Formula",
+            icon: "sigma"
+        }
+    }
+
+    export const markdown: CellRenderer = {
+        cell<Props extends Value>(props: Props): React.ReactNode {
+            return null;
+        },
+        formula<Props extends Value>(props: Props): React.ReactNode {
+            return null;
+        },
+        friendlyName: {
+            label: "Rich Text",
+            icon: "ligature"
+        }
+
     }
 }

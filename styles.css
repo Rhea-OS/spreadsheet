@@ -52,6 +52,10 @@
     height: fit-content;
 }
 
+.formula input {
+    width: 100%;
+}
+
 textarea {
     min-height: var(--input-height);
 
@@ -71,7 +75,7 @@ textarea {
     pointer-events: none;
 }
 
-table, .table-container {
+.table-container {
     grid-area: table;
 
     background: var(--table-background);
@@ -118,33 +122,6 @@ thead {
 
 .table-container > * {
     box-sizing: border-box;
-}
-
-td {
-    line-height: var(--table-line-height);
-    font-size: var(--table-text-size);
-    color: var(--text-muted);
-
-    padding: 4px 8px;
-
-    border: var(--table-border-width) solid var(--table-border-color);
-
-    box-sizing: border-box;
-
-
-    overflow: hidden;
-    white-space: nowrap;
-    text-overflow: clip;
-}
-
-td.editing, .table-cell.editing {
-    /*border: 4px solid hsl(var(--accent-h), var(--accent-s), var(--accent-l));*/
-    background: var(--code-background);
-    color: var(--table-text-color);
-}
-
-thead td {
-    resize: horizontal;
 }
 
 .table-header-cell {

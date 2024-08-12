@@ -41,10 +41,13 @@ export type ResizeState = {
 };
 
 
-export function value(raw: string, row: number, col: number, sheet: Spreadsheet): Value {
+export function value(raw: string, sheet: Spreadsheet): Value {
     const watches: ((raw: string) => void)[] = [];
+    let type: keyof typeof renderers = 'raw';
 
-    return {
+    let lastUpdate: Date = new Date();
+
+    const value: Value = {
         setRaw: data => {
             raw = data;
             for (const watch of watches)
@@ -57,9 +60,21 @@ export function value(raw: string, row: number, col: number, sheet: Spreadsheet)
         },
 
         renderer(): CellRenderer {
-            return renderers[sheet.columnType(col) as keyof typeof renderers];
+            if (lastUpdate < sheet.lastChanged) {
+                const row = sheet.raw?.find(row => row.includes(value));
+                const col = row?.findIndex(cell => cell == value);
+
+                lastUpdate = new Date();
+
+                if (typeof col == "number")
+                    return renderers[type = sheet.columnType(col)];
+            }
+
+            return renderers[type];
         }
-    }
+    };
+
+    return value;
 }
 
 export interface DocumentProperties {
@@ -78,6 +93,13 @@ export interface DocumentProperties {
 
 export default class Spreadsheet extends obs.TextFileView {
     raw: Value[][] = [[]];
+
+    private root: rdom.Root | null = null;
+    #change: Date = new Date();
+
+    get lastChanged(): Date {
+        return this.#change;
+    }
 
     #props: DocumentProperties = {
         frontMatter: {},
@@ -108,7 +130,7 @@ export default class Spreadsheet extends obs.TextFileView {
         this.onExternalChange = onExternalChange;
         this.notifyChange = notifyChange;
 
-        this.raw[0].push(value("", 0, 0, this));
+        this.raw[0].push(value("", this));
     }
 
     public readonly onExternalChange: (watcher: () => void) => (() => void);
@@ -134,9 +156,9 @@ export default class Spreadsheet extends obs.TextFileView {
         return this.#props;
     }
 
-    public columnType(col: number): string {
+    public columnType(col: number): keyof typeof renderers {
         if (this.#props.columnTypes[col] in renderers)
-            return this.#props.columnTypes[col];
+            return this.#props.columnTypes[col] as any;
 
         return 'raw';
     }
@@ -146,6 +168,8 @@ export default class Spreadsheet extends obs.TextFileView {
             ...this.#props,
             ...update(this.#props)
         });
+
+        this.#change = new Date();
 
         this.notifyChange();
     }
@@ -171,10 +195,11 @@ export default class Spreadsheet extends obs.TextFileView {
             }));
 
         const prevRaw = [...this.raw];
+        const prevProps = { ...this.documentProperties };
         this.raw = [];
 
         for (const [cells, row] of rows.map((i, row) => [i.split(separator), row] as const)) {
-            this.raw.push(new Array(this.documentProperties.columnTitles.length).fill("").map((i, col) => value(i, row, col, this)));
+            this.raw.push(new Array(this.documentProperties.columnTitles.length).fill("").map(cell => value(cell, this)));
 
             for (const [raw, col] of cells.map((i, col) => [i, col] as const)) {
                 const prev = prevRaw[row]?.[col];
@@ -184,11 +209,13 @@ export default class Spreadsheet extends obs.TextFileView {
                     if (prev.getRaw() != raw)
                         prev.setRaw(raw);
                 } else
-                    this.raw[row][col] = value(raw, row, col, this);
+                    this.raw[row][col] = value(raw, this);
             }
         }
 
         this.updateDocumentProperties(prev => ({
+            ...prevProps,
+
             columnTypes: new Array(this.documentProperties.columnTitles.length).fill("raw"),
             columnWidths: new Array(this.documentProperties.columnTitles.length).fill(DEFAULT_COLUMN_WIDTH),
             rowHeights: new Array(this.raw.length).fill(DEFAULT_ROW_HEIGHT)
@@ -206,6 +233,30 @@ export default class Spreadsheet extends obs.TextFileView {
     editFormat(col: number, format: string) {
         this.updateDocumentProperties(prev => ({
             columnTypes: prev.columnTypes.with(col, format)
+        }));
+    }
+
+    insertCol(col: number) {
+        // Warning: I see a potential for bugs here.
+        for (const row of this.raw)
+            row.splice(col + 1, 0, value("", this));
+
+        this.#change = new Date();
+
+        this.updateDocumentProperties(prev => ({
+            columnTitles: [...prev.columnTitles.slice(0, col + 1), `Column ${col + 2}`, ...prev.columnTitles.slice(col + 1)],
+            columnTypes: [...prev.columnTypes.slice(0, col + 1), 'raw', ...prev.columnTypes.slice(col + 1)],
+            columnWidths: [...prev.columnWidths.slice(0, col + 1), DEFAULT_COLUMN_WIDTH, ...prev.columnWidths.slice(col + 1)],
+        }));
+    }
+
+    insertRow(row: number) {
+        // Warning: I see a potential for bugs here.
+        this.raw.splice(row + 1, 0, new Array(this.#props.columnTypes.length).fill("").map(cell => value(cell, this)));
+        this.#change = new Date();
+
+        this.updateDocumentProperties(prev => ({
+            rowHeights: [...prev.rowHeights.slice(0, row + 1), DEFAULT_ROW_HEIGHT, ...prev.rowHeights.slice(row + 1)],
         }));
     }
 
@@ -232,8 +283,12 @@ export default class Spreadsheet extends obs.TextFileView {
     }
 
     protected async onOpen(): Promise<void> {
-        rdom.createRoot(this.contentEl)
+        (this.root = rdom.createRoot(this.contentEl))
             .render(<Ui sheet={this}/>);
+    }
+
+    protected async onClose(): Promise<void> {
+        this.root?.unmount();
     }
 }
 
@@ -346,9 +401,9 @@ export function columnContextMenu(e: React.MouseEvent, col: number, sheet: Sprea
     const menu = new obs.Menu();
 
     menu.addItem(item => {
-        const submenu: obs.Menu = item
+        const submenu = (item
             .setIcon("languages")
-            .setTitle("Set column format")
+            .setTitle("Set column format") as any as { setSubmenu: () => obs.Menu })
             .setSubmenu();
 
         for (const [key, ren] of Object.entries(renderers))
@@ -357,7 +412,29 @@ export function columnContextMenu(e: React.MouseEvent, col: number, sheet: Sprea
                 .setTitle(ren.friendlyName.label)
                 .onClick(_ => sheet.editFormat(col, key)));
     });
+
     menu.addSeparator();
+
+    menu.addItem(item => item
+        .setIcon("arrow-left-to-line")
+        .setTitle("Swap column leftwards"));
+    menu.addItem(item => item
+        .setIcon("arrow-right-to-line")
+        .setTitle("Swap column rightwards"));
+
+    menu.addSeparator();
+
+    menu.addItem(item => item
+        .setIcon("list-plus")
+        .setTitle("Insert column before")
+        .onClick(_ => sheet.insertCol(col - 1)));
+    menu.addItem(item => item
+        .setIcon("list-plus")
+        .setTitle("Insert column after")
+        .onClick(_ => sheet.insertCol(col)));
+
+    menu.addSeparator();
+
     menu.addItem(item => item
         .setIcon("trash-2")
         .setTitle("Delete Column")
@@ -370,7 +447,26 @@ export function columnContextMenu(e: React.MouseEvent, col: number, sheet: Sprea
 export function rowContextMenu(e: React.MouseEvent, row: number, sheet: Spreadsheet) {
     const menu = new obs.Menu();
 
+    menu.addItem(item => item
+        .setIcon("arrow-up-to-line")
+        .setTitle("Swap row upwards"));
+    menu.addItem(item => item
+        .setIcon("arrow-down-to-line")
+        .setTitle("Swap row downwards"));
+
     menu.addSeparator();
+
+    menu.addItem(item => item
+        .setIcon("list-plus")
+        .setTitle("Insert row above")
+        .onClick(_ => sheet.insertRow(row - 1)));
+    menu.addItem(item => item
+        .setIcon("list-plus")
+        .setTitle("Insert row below")
+        .onClick(_ => sheet.insertRow(row)));
+
+    menu.addSeparator();
+
     menu.addItem(item => item
         .setIcon("trash-2")
         .setTitle("Delete Row")
