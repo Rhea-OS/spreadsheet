@@ -1,0 +1,59 @@
+[
+    {
+        "name": "Second",
+        "matcher": "{}s",
+        "metric": true,
+        "equivalence": [
+            "60ms"
+        ]
+    },
+    {
+        "name": "Minute",
+        "matcher": "{}min",
+        "equivalence": [
+            "60s"
+        ]
+    },
+    {
+        "name": "Hour",
+        "matcher": "{}h",
+        "equivalence": [
+            "3600s"
+        ]
+    },
+    {
+        "name": "Day",
+        "matcher": "{}d",
+        "equivalence": [
+            "24h"
+        ]
+    },
+    {
+        "name": "Solar Day",
+        "matcher": "{}sd",
+        "equivalence": [
+            "23.86h"
+        ]
+    },
+    {
+        "name": "Week",
+        "matcher": "{}w",
+        "equivalence": [
+            "7d"
+        ]
+    },
+    {
+        "name": "Month",
+        "matcher": "{}months",
+        "equivalence": [
+            "4w"
+        ]
+    },
+    {
+        "name": "Year",
+        "matcher": "{}y",
+        "equivalence": [
+            "365d"
+        ]
+    }
+]

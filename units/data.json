@@ -1,0 +1,34 @@
+[
+    {
+        "name": "Bit",
+        "matcher": "{}b",
+        "metric": true,
+        "equivalence": [
+            "0.125B"
+        ]
+    },
+    {
+        "name": "Byte",
+        "matcher": "{}B",
+        "metric": true,
+        "equivalence": [
+            "8b"
+        ]
+    },
+    {
+        "name": "Bit per second",
+        "matcher": "{}b/s",
+        "metric": true,
+        "equivalence": [
+            "0.125B/s"
+        ]
+    },
+    {
+        "name": "Byte per second",
+        "matcher": "{}B/s",
+        "metric": true,
+        "equivalence": [
+            "8b/s"
+        ]
+    }
+]

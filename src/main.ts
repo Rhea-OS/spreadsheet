@@ -1,11 +1,12 @@
 import * as obs from 'obsidian';
 import Spreadsheet, {SPREADSHEET_VIEW} from "./spreadsheet.js";
+import units, {Unit} from "./units.js";
 
 export interface Settings {
-
+    units: Unit[]
 }
 export const default_settings: Settings = {
-
+    units
 };
 
 export default class SpreadsheetPlugin extends obs.Plugin {
@@ -14,6 +15,8 @@ export default class SpreadsheetPlugin extends obs.Plugin {
     async onload() {
         this.registerView(SPREADSHEET_VIEW, leaf => new Spreadsheet(leaf));
         this.registerExtensions(["csv", "tab"], SPREADSHEET_VIEW);
+
+        this.addSettingTab(new SettingsTab(this.app, this));
 
         this.addCommand({
             id: "open-new-spreadsheet",

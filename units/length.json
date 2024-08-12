@@ -1,0 +1,40 @@
+[
+    {
+        "name": "Metre",
+        "matcher": "{}m",
+        "metric": true,
+        "equivalence": [
+            "0.000621371mi",
+            "39.370066559999998in",
+            "3.2808388799999996799ft"
+        ]
+    },
+    {
+        "name": "Mile",
+        "matcher": "{}mi",
+        "equivalence": [
+            "1.61km"
+        ]
+    },
+    {
+        "name": "Feet",
+        "matcher": "{}ft",
+        "equivalence": [
+            "12in"
+        ]
+    },
+    {
+        "name": "Inch",
+        "matcher": "{}in",
+        "equivalence": [
+            "2.54cm"
+        ]
+    },
+    {
+        "name": "Light year",
+        "matcher": "{}LY",
+        "equivalence": [
+            "9,461e+12km"
+        ]
+    }
+]

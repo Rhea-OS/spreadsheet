@@ -1,0 +1,108 @@
+[
+    {
+        "name": "Gram",
+        "matcher": "{}g",
+        "metric": true,
+        "equivalence": []
+    },
+    {
+        "name": "Lumen",
+        "matcher": "{}lm",
+        "metric": true,
+        "equivalence": []
+    },
+    {
+        "name": "Newton",
+        "matcher": "{}N",
+        "metric": true,
+        "equivalence": []
+    },
+    {
+        "name": "Newton-metre",
+        "matcher": "{}Nm",
+        "metric": true,
+        "equivalence": []
+    },
+    {
+        "name": "Volt",
+        "matcher": "{}R",
+        "metric": true,
+        "equivalence": []
+    },
+    {
+        "name": "Electron Volt",
+        "matcher": "{}eV",
+        "metric": true,
+        "equivalence": [
+            "1.602176634e-19V"
+        ]
+    },
+    {
+        "name": "Watt",
+        "matcher": "{}W",
+        "metric": true,
+        "equivalence": []
+    },
+    {
+        "name": "Amp",
+        "matcher": "{}A",
+        "metric": true,
+        "equivalence": []
+    },
+    {
+        "name": "Ohm",
+        "matcher": "{}Ω",
+        "metric": true,
+        "equivalence": []
+    },
+    {
+        "name": "Degree",
+        "matcher": "{}°",
+        "metric": true,
+        "equivalence": []
+    },
+    {
+        "name": "Radians",
+        "matcher": "{}°",
+        "metric": false,
+        "equivalence": [
+            "57.2958°"
+        ]
+    },
+    {
+        "name": "Degrees Kelvin",
+        "matcher": "{}°K",
+        "metric": true,
+        "equivalence": []
+    },
+    {
+        "name": "Degrees Celsius",
+        "matcher": "{}°C",
+        "metric": true,
+        "equivalence": []
+    },
+    {
+        "name": "Herz",
+        "matcher": "{}Hz",
+        "metric": true,
+        "equivalence": []
+    },
+    {
+        "name": "Tesla",
+        "matcher": "{}T",
+        "metric": true,
+        "equivalence": []
+    },
+    {
+        "name": "Coulomb",
+        "matcher": "{}C",
+        "metric": true,
+        "equivalence": []
+    },
+    {
+        "name": "Ohm",
+        "matcher": "{}Ω",
+        "metric": true,
+        "equivalence": []
+    }
+]

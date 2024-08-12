@@ -1,8 +1,11 @@
 import * as React from "react";
 import * as chrono from 'chrono-node';
 import * as luxon from 'luxon';
+import * as icons from 'lucide-react';
+import * as obs from 'obsidian';
 
 import {Value} from "./spreadsheet.js";
+import {Cell} from "./range.js";
 
 export default function FormulaBar(props: { activeCell: Value }) {
     return <div className={"formula"}>
@@ -23,13 +26,15 @@ export namespace renderers {
         cell<Props extends Value>(props: Props): React.ReactNode {
             React.useSyncExternalStore(props.onChange, () => props.getRaw());
 
-            return <span>{props.getRaw()}</span>
+            return <span className={"raw"}>{props.getRaw()}</span>
         },
         formula<Props extends Value>(props: Props): React.ReactNode {
             React.useSyncExternalStore(props.onChange, () => props.getRaw());
+            const ref = React.createRef<HTMLTextAreaElement>();
+            setTimeout(() => ref.current?.focus());
 
             return <textarea
-                // className={"formula"}
+                ref={ref}
                 autoFocus={true}
                 value={props.getRaw()}
                 onChange={e => props.setRaw(e.target.value)}/>
@@ -45,20 +50,23 @@ export namespace renderers {
             let parsed = chrono.casual.parseDate(React.useSyncExternalStore(props.onChange, () => props.getRaw()));
 
             if (!parsed)
-                return <div className={"horizontal"}>
+                return <span className={"raw"}>
                     {"Invalid Date"}
-                </div>
+                </span>
 
             const date = luxon.DateTime.fromJSDate(parsed);
 
-            return <div className={"horizontal"}>
-                {date.toLocaleString(luxon.DateTime.DATETIME_FULL)}
-            </div>;
+            return <span className={"raw"}>
+                {date.toFormat("dd/MM/yyyy hh:mm:ss")}
+            </span>;
         },
         formula<Props extends Value>(props: Props): React.ReactNode {
             let parsed = luxon.DateTime.fromJSDate(chrono.casual.parseDate(React.useSyncExternalStore(props.onChange, () => props.getRaw())) ?? new Date());
+            const ref = React.createRef<HTMLInputElement>();
+            setTimeout(() => ref.current?.focus());
 
             return <input
+                ref={ref}
                 autoFocus={true}
                 type={"datetime-local"}
                 value={parsed.toISO({ includeOffset: false })!} onChange={e => props.setRaw(e.target.value)}/>;
@@ -93,6 +101,55 @@ export namespace renderers {
             label: "Rich Text",
             icon: "ligature"
         }
+    }
 
+    export const sex: CellRenderer = oneOf("Sex", ["Male", "Female", "Other", "Unknown"], "user");
+}
+
+export function oneOf(friendlyName: string, values: string[], icon?: string): CellRenderer {
+
+    const openMenu = function(e: Element, onValue: (value: string) => void) {
+        const menu = new obs.Menu();
+
+        for (const option of values)
+            menu.addItem(item => item
+                .setTitle(option)
+                .onClick(_ => onValue(option)));
+
+        const bound = e.getBoundingClientRect();
+
+        menu.showAtPosition({
+            x: bound.left,
+            y: bound.bottom,
+        });
+    }
+
+    return {
+        friendlyName: {
+            label: friendlyName,
+            icon
+        },
+        formula<Props extends Value>(props: Props): React.ReactNode {
+            const selected = React.useSyncExternalStore(props.onChange, () => props.getRaw());
+
+            return <div tabIndex={0}
+                        className={"dropdown"}
+                        onClick={e => openMenu(e.currentTarget, value => props.setRaw(value))}
+                        onKeyUp={e => ["Enter", "Space"].includes(e.key) && openMenu(e.currentTarget, value => props.setRaw(value))}>
+                <span className={"fill"}>{selected}</span>
+            </div>
+        },
+        cell<Props extends Value>(props: Props): React.ReactNode {
+            const selected = React.useSyncExternalStore(props.onChange, () => props.getRaw());
+
+            return <div
+                tabIndex={0}
+                className={"dropdown horizontal"}
+                onClick={e => openMenu(e.currentTarget, value => props.setRaw(value))}
+                onKeyUp={e => ["Enter", "Space"].includes(e.key) && openMenu(e.currentTarget, value => props.setRaw(value))}>
+                <span className={"fill"}>{selected}</span>
+                {/*<icons.ChevronsUpDown size={14}/>*/}
+            </div>
+        }
     }
 }
