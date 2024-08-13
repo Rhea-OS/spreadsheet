@@ -1,15 +1,63 @@
 import * as React from "react";
 import * as chrono from 'chrono-node';
 import * as luxon from 'luxon';
-import * as icons from 'lucide-react';
 import * as obs from 'obsidian';
 
 import {Value} from "./spreadsheet.js";
-import {Cell} from "./range.js";
+import {DEFAULT_ROW_HEIGHT} from "./table.js";
+
+export type ResizeState = {
+    isResizing: false,
+    height: number,
+} | {
+    isResizing: true,
+    height: number,
+    prevMouseY: number,
+};
 
 export default function FormulaBar(props: { activeCell: Value }) {
-    return <div className={"formula"}>
-        {props.activeCell.renderer().formula(props.activeCell)}
+    const [resize, setResize] = React.useState<ResizeState>({
+        isResizing: false,
+        height: DEFAULT_ROW_HEIGHT
+    });
+
+    React.useEffect(() => {
+        const mouseUp = (e: MouseEvent) => setResize(prev => ({
+            height: prev.height,
+            isResizing: false
+        }));
+        const mouseMove = (e: MouseEvent) => setResize(prev => {
+            if (prev.isResizing)
+                return {
+                    isResizing: true,
+                    prevMouseY: e.clientY,
+                    height: prev.height + (e.clientY - prev.prevMouseY)
+                };
+
+            return prev;
+        });
+
+        if (resize.isResizing) {
+            document.addEventListener('mousemove', mouseMove);
+            document.addEventListener('mouseup', mouseUp);
+        } else {
+            document.removeEventListener('mousemove', mouseMove);
+            document.removeEventListener('mouseup', mouseUp);
+        }
+    }, [resize]);
+
+    return <div className={"formula"}
+                style={{height: `${resize.height}px`}}>
+        <div className={"custom-input"}>
+            {props.activeCell.renderer().formula(props.activeCell)}
+        </div>
+        <span
+            className={"resize-handle horizontal"}
+            onMouseDown={e => setResize(prev => ({
+                isResizing: true,
+                prevMouseY: e.clientY,
+                height: prev.height
+            }))}/>
     </div>
 }
 
@@ -69,7 +117,7 @@ export namespace renderers {
                 ref={ref}
                 autoFocus={true}
                 type={"datetime-local"}
-                value={parsed.toISO({ includeOffset: false })!} onChange={e => props.setRaw(e.target.value)}/>;
+                value={parsed.toISO({includeOffset: false})!} onChange={e => props.setRaw(e.target.value)}/>;
         },
         friendlyName: {
             label: "Date & Time",
@@ -108,7 +156,7 @@ export namespace renderers {
 
 export function oneOf(friendlyName: string, values: string[], icon?: string): CellRenderer {
 
-    const openMenu = function(e: Element, onValue: (value: string) => void) {
+    const openMenu = function (e: Element, onValue: (value: string) => void) {
         const menu = new obs.Menu();
 
         for (const option of values)

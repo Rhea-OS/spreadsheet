@@ -1,22 +1,15 @@
 import * as obs from 'obsidian';
 import Spreadsheet, {SPREADSHEET_VIEW} from "./spreadsheet.js";
-import units, {Unit} from "./units.js";
-
-export interface Settings {
-    units: Unit[]
-}
-export const default_settings: Settings = {
-    units
-};
+import SettingsTab from "./settingsTab.js";
 
 export default class SpreadsheetPlugin extends obs.Plugin {
-    settings: Settings = default_settings;
+    settings: SettingsTab | null = null;
 
     async onload() {
         this.registerView(SPREADSHEET_VIEW, leaf => new Spreadsheet(leaf));
         this.registerExtensions(["csv", "tab"], SPREADSHEET_VIEW);
 
-        this.addSettingTab(new SettingsTab(this.app, this));
+        this.addSettingTab(this.settings = new SettingsTab(this.app, this));
 
         this.addCommand({
             id: "open-new-spreadsheet",
@@ -40,21 +33,11 @@ export default class SpreadsheetPlugin extends obs.Plugin {
     }
 
     async loadSettings() {
-		this.settings = Object.assign({}, default_settings, await this.loadData());
+        this.settings?.load(await this.loadData());
+		// this.settings = Object.assign({}, default_settings, await this.loadData());
 	}
 
 	async saveSettings() {
-		await this.saveData(this.settings);
+		await this.saveData(this.settings?.get());
 	}
-}
-
-export class SettingsTab extends obs.PluginSettingTab {
-    constructor(app: obs.App, private plugin: SpreadsheetPlugin) {
-        super(app, plugin);
-    }
-
-    display() {
-		this.containerEl.empty();
-
-    }
 }

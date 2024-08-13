@@ -38,18 +38,22 @@
 
 .formula {
     flex: 1;
+    flex-direction: column;
+
+    align-items: stretch;
 
     min-height: var(--input-height);
-    /*height: var(--input-height);*/
+    height: var(--input-height);
 
-    /*background: var(--code-background);*/
-    /*white-space: var(--code-white-space);*/
-    /*font: var(--font-small) monospace;*/
-    /*font: var(--font-monospace-theme);*/
-
-    /*resize: vertical;*/
     width: 100%;
-    height: fit-content;
+}
+
+.formula .custom-input {
+    height: 100%;
+}
+
+.formula .resize-handle {
+    width: 100%;
 }
 
 .formula input {
@@ -57,16 +61,16 @@
 }
 
 textarea {
-    min-height: var(--input-height);
+    padding-inline-start: var(--size-4-6);
+    padding: var(--size-4-1) var(--size-4-2);
 
-    height: var(--input-height);
-
-    resize: vertical;
+    resize: none;
     width: 100%;
+    height: 100%;
 
     background: var(--code-background);
     white-space: var(--code-white-space);
-    font: var(--font-small) monospace;
+    font: var(--font-ui-small) monospace;
     /*font: var(--font-monospace-theme);*/
 }
 
@@ -198,6 +202,7 @@ textarea {
 }
 
 .resize-handle {
+    display: block;
     width: 4px;
     min-width: 4px;
     cursor: col-resize;
