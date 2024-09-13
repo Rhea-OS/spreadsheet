@@ -14,21 +14,15 @@
         "chrono-node": "https://github.com/wanasit/chrono.git"
     },
     "scripts": {
-        "build:plugin": "esbuild src/main.ts --outdir=build --bundle --sourcemap --platform=node --format=cjs --external:obsidian --external:electron",
-        "build:package.json": "cat package.json | jq -r '. *  .deploy * {deploy:null} | with_entries(select(.value |. != null))' > build/package.json",
-        "build:manifest.json": "cat manifest.json | jq -r '.' > build/manifest.json",
-        "build:styles.css": "esbuild styles.css --outdir=build --bundle",
-        "build:hotreload": "echo hotreload > build/.hotreload",
-        "phony:rebuild": "cat package.json | jq -r '.scripts | keys_unsorted[] | select(. | startswith(\"build:\"))' | xargs -d \\\\n -I {} $npm_execpath run {}",
-        "phony:install": "mkdir -p \"$vault_dir/.obsidian/plugins/$(cat package.json | jq -r '.name')\"; cp -ra build/. \"$vault_dir/.obsidian/plugins/$(cat package.json | jq -r '.name')\"",
-        "phony:clean": "rm -rf build target node_modules *lock* *yarn* *pnpm*"
+        "build": "node -e \"await import('./bin/build.js').then(script => script.default(process.argv.slice(1)))\" --"
     },
     "devDependencies": {
         "@j-cake/mkjson": "latest",
-        "@types/luxon": "^3.4.2",
+        "@types/luxon": "latest",
         "@types/node": "latest",
         "@types/react": "latest",
         "@types/react-dom": "latest",
+        "chalk": "latest",
         "electron": "latest",
         "esbuild": "latest",
         "obsidian": "latest",
