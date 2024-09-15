@@ -74,6 +74,7 @@ textarea {
     /*font: var(--font-monospace-theme);*/
 }
 
+
 .formula:disabled {
     background: transparent;
     pointer-events: none;
@@ -158,6 +159,24 @@ textarea {
     flex: 1;
     display: flex;
     max-width: calc(100% - 4px);
+    /*width: 100%;*/
+}
+
+.column-title:has(.column-title-rename) {
+    background: var(--code-background);
+}
+
+input[type="text"].column-title-rename {
+    border: 0;
+    box-shadow: none;
+    background-color: transparent;
+    border-radius: 0;
+    margin: 0;
+    padding: 0;
+    font-weight: var(--table-header-weight);
+    font-size: inherit;
+    height: fit-content;
+    width: 100%;
 }
 
 .row-title {
@@ -206,6 +225,7 @@ textarea {
     width: 4px;
     min-width: 4px;
     cursor: col-resize;
+    background-color: transparent;
     transition: background-color 200ms ease-in-out;
 }
 

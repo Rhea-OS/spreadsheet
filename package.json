@@ -1,6 +1,6 @@
 {
     "name": "spreadsheet",
-    "main": "./build/index.js",
+    "build": "./build.js",
     "version": "0.1.0",
     "type": "module",
     "dependencies": {
@@ -14,17 +14,16 @@
         "chrono-node": "https://github.com/wanasit/chrono.git"
     },
     "scripts": {
-        "build": "node -e \"await import('./bin/build.js').then(script => script.default(process.argv.slice(1)))\" --"
+        "build": "build phony:all phony:install"
     },
     "devDependencies": {
-        "@j-cake/mkjson": "latest",
         "@types/luxon": "latest",
         "@types/node": "latest",
         "@types/react": "latest",
         "@types/react-dom": "latest",
+        "builder": "link:../../builder",
         "chalk": "latest",
         "electron": "latest",
-        "esbuild": "latest",
         "obsidian": "latest",
         "typescript": "latest"
     },

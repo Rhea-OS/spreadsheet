@@ -195,7 +195,7 @@ export default class Spreadsheet extends obs.TextFileView {
             }));
 
         const prevRaw = [...this.raw];
-        const prevProps = { ...this.documentProperties };
+        const prevProps = {...this.documentProperties};
         this.raw = [];
 
         for (const [cells, row] of rows.map((i, row) => [i.split(separator), row] as const)) {
@@ -260,6 +260,26 @@ export default class Spreadsheet extends obs.TextFileView {
         }));
     }
 
+    removeCol(col: number) {
+        for (const row of this.raw)
+            row.splice(col, 1);
+
+        this.#change = new Date();
+        this.updateDocumentProperties(prev => ({
+            columnWidths: [...prev.columnWidths.slice(0, col), ...prev.columnWidths.slice(col + 1)],
+            columnTitles: [...prev.columnTitles.slice(0, col), ...prev.columnTitles.slice(col + 1)],
+            columnTypes: [...prev.columnTypes.slice(0, col), ...prev.columnTypes.slice(col + 1)]
+        }));
+    }
+
+    removeRow(row: number) {
+        this.raw.splice(row, 1);
+        this.#change = new Date();
+        this.updateDocumentProperties(prev => ({
+            rowHeights: [...prev.rowHeights.slice(0, row), ...prev.rowHeights.slice(row + 1)]
+        }));
+    }
+
     clear(): void {
         this.raw = [[]];
     }
@@ -297,6 +317,7 @@ export function Ui(props: { sheet: Spreadsheet }) {
     const [resize, setResize] = React.useState<ResizeState>({
         isResizing: false,
     });
+    const [isRenamingColumn, setIsRenamingColumn] = React.useState<null | number>(null);
 
     const documentProperties = React.useSyncExternalStore(props.sheet.onExternalChange, () => props.sheet.documentProperties);
 
@@ -343,10 +364,24 @@ export function Ui(props: { sheet: Spreadsheet }) {
                              gridColumn: col + 2,
                              gridRow: 1
                          }}
-                         onContextMenu={e => columnContextMenu(e, col, props.sheet)}>
+                         onContextMenu={e => columnContextMenu(e, col, props.sheet, setIsRenamingColumn)}
+                        onDoubleClick={e => setIsRenamingColumn(col)}>
                         <div className={"column-title"}>
-                            {column} {props.sheet.columnType(col) != 'raw' ?
-                            <div className={"nav-file-tag"}>{props.sheet.columnType(col)}</div> : null}
+                            {isRenamingColumn == col ? <input
+                                type={"text"}
+                                className={"column-title-rename"}
+                                value={column}
+                                autoFocus={true}
+                                onFocus={e => e.currentTarget.select()}
+                                onBlur={e => setIsRenamingColumn(null)}
+                                onKeyUp={e => ["Tab", "Enter"].includes(e.key) && setIsRenamingColumn(null)}
+                                onChange={e => props.sheet.updateDocumentProperties(prev => ({
+                                    columnTitles: prev.columnTitles.with(col, e.currentTarget.value)
+                                }))}/> : column}
+                            {props.sheet.columnType(col) != 'raw' ?
+                                <div className={"nav-file-tag"}>
+                                    {props.sheet.columnType(col)}
+                                </div> : null}
                         </div>
                         <span className={"resize-handle"} onMouseDown={e => setResize({
                             isResizing: true,
@@ -397,8 +432,13 @@ export function Ui(props: { sheet: Spreadsheet }) {
     </section>;
 }
 
-export function columnContextMenu(e: React.MouseEvent, col: number, sheet: Spreadsheet) {
+export function columnContextMenu(e: React.MouseEvent, col: number, sheet: Spreadsheet, setIsRenamingColumn: React.Dispatch<React.SetStateAction<null | number>>) {
     const menu = new obs.Menu();
+
+    menu.addItem(item => item
+        .setIcon("pencil")
+        .setTitle("Rename Column")
+        .onClick(_ => setIsRenamingColumn(col)));
 
     menu.addItem(item => {
         const submenu = (item
@@ -438,8 +478,7 @@ export function columnContextMenu(e: React.MouseEvent, col: number, sheet: Sprea
     menu.addItem(item => item
         .setIcon("trash-2")
         .setTitle("Delete Column")
-        .onClick(e => {
-        }));
+        .onClick(e => sheet.removeCol(col)));
 
     menu.showAtMouseEvent(e.nativeEvent);
 }
@@ -470,8 +509,7 @@ export function rowContextMenu(e: React.MouseEvent, row: number, sheet: Spreadsh
     menu.addItem(item => item
         .setIcon("trash-2")
         .setTitle("Delete Row")
-        .onClick(e => {
-        }));
+        .onClick(e => sheet.removeRow(row)));
 
     menu.showAtMouseEvent(e.nativeEvent);
 }

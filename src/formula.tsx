@@ -78,11 +78,11 @@ export namespace renderers {
         },
         formula<Props extends Value>(props: Props): React.ReactNode {
             React.useSyncExternalStore(props.onChange, () => props.getRaw());
-            const ref = React.createRef<HTMLTextAreaElement>();
-            setTimeout(() => ref.current?.focus());
+            // const ref = React.createRef<HTMLTextAreaElement>();
+            // setTimeout(() => ref.current?.focus());
 
             return <textarea
-                ref={ref}
+                // ref={ref}
                 autoFocus={true}
                 value={props.getRaw()}
                 onChange={e => props.setRaw(e.target.value)}/>
@@ -110,11 +110,11 @@ export namespace renderers {
         },
         formula<Props extends Value>(props: Props): React.ReactNode {
             let parsed = luxon.DateTime.fromJSDate(chrono.casual.parseDate(React.useSyncExternalStore(props.onChange, () => props.getRaw())) ?? new Date());
-            const ref = React.createRef<HTMLInputElement>();
-            setTimeout(() => ref.current?.focus());
+            // const ref = React.createRef<HTMLInputElement>();
+            // setTimeout(() => ref.current?.focus());
 
             return <input
-                ref={ref}
+                // ref={ref}
                 autoFocus={true}
                 type={"datetime-local"}
                 value={parsed.toISO({includeOffset: false})!} onChange={e => props.setRaw(e.target.value)}/>;
@@ -140,10 +140,14 @@ export namespace renderers {
 
     export const markdown: CellRenderer = {
         cell<Props extends Value>(props: Props): React.ReactNode {
-            return null;
+            React.useSyncExternalStore(props.onChange, () => props.getRaw());
+
+            return <span className={"raw"}>{props.getRaw()}</span>
         },
         formula<Props extends Value>(props: Props): React.ReactNode {
-            return null;
+            React.useSyncExternalStore(props.onChange, () => props.getRaw());
+
+            return <span className={"raw"}>{props.getRaw()}</span>
         },
         friendlyName: {
             label: "Rich Text",
