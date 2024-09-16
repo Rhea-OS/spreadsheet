@@ -2,8 +2,8 @@ import * as obs from "obsidian";
 import * as React from "react";
 import * as rdom from "react-dom/client";
 
-import Table, {DEFAULT_COLUMN_WIDTH, DEFAULT_ROW_HEIGHT, MIN_COLUMN_WIDTH, MIN_ROW_HEIGHT} from "./table.js";
-import FormulaBar, {CellRenderer, renderers} from "./formula.js";
+import Table, { DEFAULT_COLUMN_WIDTH, DEFAULT_ROW_HEIGHT, MIN_COLUMN_WIDTH, MIN_ROW_HEIGHT } from "./table.js";
+import FormulaBar, { CellRenderer, renderers } from "./formula.js";
 
 export const SPREADSHEET_VIEW = "spreadsheet-view";
 
@@ -195,7 +195,7 @@ export default class Spreadsheet extends obs.TextFileView {
             }));
 
         const prevRaw = [...this.raw];
-        const prevProps = {...this.documentProperties};
+        const prevProps = { ...this.documentProperties };
         this.raw = [];
 
         for (const [cells, row] of rows.map((i, row) => [i.split(separator), row] as const)) {
@@ -304,7 +304,7 @@ export default class Spreadsheet extends obs.TextFileView {
 
     protected async onOpen(): Promise<void> {
         (this.root = rdom.createRoot(this.contentEl))
-            .render(<Ui sheet={this}/>);
+            .render(<Ui sheet={this} />);
     }
 
     protected async onClose(): Promise<void> {
@@ -344,27 +344,27 @@ export function Ui(props: { sheet: Spreadsheet }) {
                 onResize: prev.onResize
             };
         })}
-        onMouseUp={() => setResize({isResizing: false})}>
+        onMouseUp={() => setResize({ isResizing: false })}>
 
         {/*<SelectionBar/>*/}
 
-        <FormulaBar activeCell={active}/>
+        <FormulaBar activeCell={active} />
 
         <Table raw={props.sheet.raw}
-               columnWidths={documentProperties.columnWidths}
-               rowHeights={documentProperties.rowHeights}
-               mouseUp={(row, col) => setActive(props.sheet.raw[row][col])}
-               mouseDown={(row, col) => setActive(props.sheet.raw[row][col])}>
+            columnWidths={documentProperties.columnWidths}
+            rowHeights={documentProperties.rowHeights}
+            mouseUp={(row, col) => setActive(props.sheet.raw[row][col])}
+            mouseDown={(row, col) => setActive(props.sheet.raw[row][col])}>
 
             <>
                 {documentProperties.columnTitles.map((column, col) =>
                     <div className={"table-header-cell"}
-                         key={`table-header-${col}`}
-                         style={{
-                             gridColumn: col + 2,
-                             gridRow: 1
-                         }}
-                         onContextMenu={e => columnContextMenu(e, col, props.sheet, setIsRenamingColumn)}
+                        key={`table-header-${col}`}
+                        style={{
+                            gridColumn: col + 2,
+                            gridRow: 1
+                        }}
+                        onContextMenu={e => columnContextMenu(e, col, props.sheet, setIsRenamingColumn)}
                         onDoubleClick={e => setIsRenamingColumn(col)}>
                         <div className={"column-title"}>
                             {isRenamingColumn == col ? <input
@@ -377,7 +377,7 @@ export function Ui(props: { sheet: Spreadsheet }) {
                                 onKeyUp={e => ["Tab", "Enter"].includes(e.key) && setIsRenamingColumn(null)}
                                 onChange={e => props.sheet.updateDocumentProperties(prev => ({
                                     columnTitles: prev.columnTitles.with(col, e.currentTarget.value)
-                                }))}/> : column}
+                                }))} /> : column}
                             {props.sheet.columnType(col) != 'raw' ?
                                 <div className={"nav-file-tag"}>
                                     {props.sheet.columnType(col)}
@@ -396,7 +396,7 @@ export function Ui(props: { sheet: Spreadsheet }) {
                             onResize: size => props.sheet.updateDocumentProperties(prev => ({
                                 columnWidths: prev.columnWidths.with(col, Math.max(size.width, MIN_COLUMN_WIDTH))
                             }))
-                        })}/>
+                        })} />
                     </div>)}
             </>
             <>
@@ -424,7 +424,7 @@ export function Ui(props: { sheet: Spreadsheet }) {
                             onResize: size => props.sheet.updateDocumentProperties(prev => ({
                                 rowHeights: prev.rowHeights.with(row, Math.max(size.height, MIN_ROW_HEIGHT))
                             }))
-                        })}/>
+                        })} />
                 </div>)}
             </>
 

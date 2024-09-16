@@ -13,7 +13,7 @@ interface TableProps {
     columnWidths: number[],
     rowHeights: number[],
     mouseUp: (row: number, col: number) => void
-    mouseDown: (row: number, col: number) => void
+    mouseDown: (row: number, col: number) => void,
 }
 
 export default function Table(props: TableProps) {

@@ -83,7 +83,6 @@ textarea {
 .table-container {
     grid-area: table;
 
-    background: var(--table-background);
     border-collapse: collapse;
     box-sizing: border-box;
 
@@ -147,7 +146,6 @@ textarea {
     overflow: hidden;
     white-space: nowrap;
 
-    background: var(--table-background);
     cursor: crosshair;
 
     display: flex;
