@@ -312,6 +312,72 @@ export default class Spreadsheet extends obs.TextFileView {
     }
 }
 
+export namespace Selection {
+    export type CellGroup = Range | Column | Vector;
+    export type Range = { from: Cell, to: Cell };
+    export type Vector = Row | Column;
+    export type Column = { col: number };
+    export type Row = { row: number };
+    export type Cell = { row: number, col: number };
+
+    export const normaliseRange = (range: Range): Range => ({
+        from: {
+            row: Math.min(range.from.row, range.to.row),
+            col: Math.min(range.from.col, range.to.col)
+        },
+        to: {
+            row: Math.max(range.from.row, range.to.row),
+            col: Math.max(range.from.col, range.to.col)
+        }
+    });
+
+    export const isCell = (cell: CellGroup): cell is Cell => 'row' in cell && 'col' in cell;
+    export const isRange = (cell: CellGroup): cell is Range => 'from' in cell && 'to' in cell;
+    export const isVector = (cell: CellGroup): cell is Vector => !isCell(cell) && ('row' in cell || 'col' in cell);
+    export const isColumnVector = (cell: CellGroup): cell is Column => isVector(cell) && 'col' in cell;
+    export const isRowVector = (cell: CellGroup): cell is Row => isVector(cell) && 'row' in cell;
+
+    export const area = (range: CellGroup): number => {
+        if (isCell(range))
+            return 1;
+
+        else if (isVector(range))
+            return Infinity;
+
+        const norm = normaliseRange(range);
+        return ((norm.to.row + 1) - norm.from.row) * ((norm.to.col + 1) - norm.from.col);
+    };
+
+    export const eqCell = (left: Cell, right: Cell): boolean => left.col == right.col && left.row == right.row;
+    export const eqRange = (left: Range, right: Range): boolean => {
+        left = normaliseRange(left);
+        right = normaliseRange(right);
+
+        return eqCell(left.from, right.from) && eqCell(left.to, right.to);
+    }
+
+    export const eq = (left: Range | Cell, right: Range | Cell): boolean => {
+        left = isRange(left) ? normaliseRange(left) : left;
+        right = isRange(right) ? normaliseRange(right) : right;
+    
+        if (isCell(left) && isCell(right))
+            return eqCell(left, right);
+    
+        else if (isRange(left) && isRange(right))
+            return eqRange(left, right);
+    
+        // We have one range and one cell. The cell must have an area of 1.
+        else if (area(left) != area(right))
+            return false;
+    
+        // If the area's two components aren't equal, then fail
+        else if (isRange(left) ? !eqCell(left.from, left.to) : false || isRange(right) ? !eqCell(right.from, right.to) : false)
+            return false;
+    
+        return true;
+    };
+}
+
 export function Ui(props: { sheet: Spreadsheet }) {
     const [active, setActive] = React.useState(props.sheet.raw[0][0]);
     const [resize, setResize] = React.useState<ResizeState>({
@@ -319,7 +385,38 @@ export function Ui(props: { sheet: Spreadsheet }) {
     });
     const [isRenamingColumn, setIsRenamingColumn] = React.useState<null | number>(null);
 
+    const [selection, setSelection] = React.useState({
+        selection: [] as Selection.CellGroup[],
+        startCell: null as null | Selection.Cell
+    });
+
     const documentProperties = React.useSyncExternalStore(props.sheet.onExternalChange, () => props.sheet.documentProperties);
+
+    const beginSelection = (start: Selection.Cell) => setSelection(prev => ({
+        ...prev,
+        startCell: start
+    }));
+    const alterSelection = (cell: Selection.Cell) => {};
+    const endSelection = (cell: Selection.Cell, replace: boolean) => {
+        if (replace)
+            setSelection(prev => ({
+                ...prev,
+                selection: (prev.startCell ? [Selection.normaliseRange({
+                    from: prev.startCell,
+                    to: cell,
+                })] : []).map(i => Selection.area(i) == 1 && Selection.isRange(i) ? i.from : i)
+            }));
+        else
+            setSelection(prev => ({
+                ...prev,
+                selection: [...prev.selection, ...prev.startCell ? [Selection.normaliseRange({
+                    from: prev.startCell,
+                    to: cell,
+                })] : []].map(i => Selection.area(i) == 1 && Selection.isRange(i) ? i.from : i)
+            }));
+    };
+
+    React.useEffect(() => console.log(selection), [selection]);
 
     return <section
         className={"table-widget"}
@@ -344,7 +441,10 @@ export function Ui(props: { sheet: Spreadsheet }) {
                 onResize: prev.onResize
             };
         })}
-        onMouseUp={() => setResize({ isResizing: false })}>
+        onMouseUp={() => {
+            setResize({ isResizing: false });
+            setSelection(prev => ({ ...prev, startCell: null }));
+        }}>
 
         {/*<SelectionBar/>*/}
 
@@ -353,8 +453,10 @@ export function Ui(props: { sheet: Spreadsheet }) {
         <Table raw={props.sheet.raw}
             columnWidths={documentProperties.columnWidths}
             rowHeights={documentProperties.rowHeights}
-            mouseUp={(row, col) => setActive(props.sheet.raw[row][col])}
-            mouseDown={(row, col) => setActive(props.sheet.raw[row][col])}>
+
+            mouseUp={(row, col) => endSelection({ row, col }, true)}
+            mouseMove={(row, col) => alterSelection({ row, col })}
+            mouseDown={(row, col) => beginSelection({ row, col })}>
 
             <>
                 {documentProperties.columnTitles.map((column, col) =>
@@ -427,6 +529,38 @@ export function Ui(props: { sheet: Spreadsheet }) {
                         })} />
                 </div>)}
             </>
+
+            <>{selection.selection.map(selection => {
+                if (Selection.isRange(selection))
+                    return <div className="selection-range" 
+                                style={{
+                                    gridRowStart: selection.from.row + 2,
+                                    gridRowEnd: selection.to.row + 3,
+                                    gridColumnStart: selection.from.col + 2,
+                                    gridColumnEnd: selection.to.col + 3,
+                                }}/>
+
+                else if (Selection.isCell(selection))
+                    return <div className="selection-range" 
+                                style={{
+                                    gridRow: selection.row + 2,
+                                    gridColumn: selection.col + 2
+                                }}/>
+                
+                else if (Selection.isColumnVector(selection))
+                    return <div className="selection-range" 
+                                style={{
+                                    gridRow: '1 / -1',
+                                    gridColumn: selection.col + 2
+                                }}/>
+
+                else if (Selection.isRowVector(selection))
+                    return <div className="selection-range" 
+                                style={{
+                                    gridRow: selection.row + 2,
+                                    gridColumn: '1 / -1',
+                                }}/>
+            })}</>
 
         </Table>
     </section>;

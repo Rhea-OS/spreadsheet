@@ -31,7 +31,7 @@ export default class SpreadsheetPlugin extends obs.Plugin {
                     // TODO: Handle existing files
                     const newFile = path.join(obs.normalizePath(file.path ?? this.app.vault.getRoot()), 'sheet.csv');
                     
-                    const tfile = await this.app.vault.create(newFile, 'Column 1;\n;');
+                    const tfile = await this.app.vault.create(newFile, 'Column 1;Column 2\n;');
                     await this.app.workspace.getLeaf(false).openFile(tfile);
                 }))));
     }

@@ -13,6 +13,7 @@ interface TableProps {
     columnWidths: number[],
     rowHeights: number[],
     mouseUp: (row: number, col: number) => void
+    mouseMove: (row: number, col: number) => void
     mouseDown: (row: number, col: number) => void,
 }
 
@@ -33,6 +34,7 @@ export default function Table(props: TableProps) {
             row={row}
             col={col}
             mouseUp={(row, col) => props.mouseUp(row, col)}
+            mouseMove={(row, col) => props.mouseMove(row, col)}
             mouseDown={(row, col) => props.mouseDown(row, col)}>{value}</TableCell>))}
 
     </section>;
@@ -43,12 +45,14 @@ export function TableCell(props: {
     row: number,
     col: number,
     mouseUp: (row: number, col: number) => void
+    mouseMove: (row: number, col: number) => void
     mouseDown: (row: number, col: number) => void
 }) {
     return <div
         className={"table-cell"}
         onMouseUp={e => props.mouseUp(props.row, props.col)}
-        onMouseDown={e => props.mouseUp(props.row, props.col)}
+        onMouseMove={e => props.mouseMove(props.row, props.col)}
+        onMouseDown={e => props.mouseDown(props.row, props.col)}
         style={{
             gridRow: props.row + 2,
             gridColumn: props.col + 2
