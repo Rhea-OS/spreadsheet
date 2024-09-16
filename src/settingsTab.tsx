@@ -12,12 +12,12 @@ export const default_settings: Settings = {
     units
 };
 
-export default class SettingsTab extends obs.SettingTab {
+export default class SettingsTab extends obs.PluginSettingTab {
     private root: rdom.Root | null = null;
     settings: Settings = default_settings;
 
     constructor(readonly app: obs.App, private plugin: SpreadsheetPlugin) {
-        super();
+        super(app, plugin);
     }
 
     load(settings: Partial<Settings>) {
