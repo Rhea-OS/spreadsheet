@@ -23,7 +23,6 @@
         "@types/react-dom": "latest",
         "builder": "link:../../builder",
         "chalk": "latest",
-        "electron": "latest",
         "obsidian": "latest",
         "typescript": "latest"
     },

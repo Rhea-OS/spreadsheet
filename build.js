@@ -17,6 +17,9 @@ export default {
             sourcemap: true,
             platform: 'node',
             format: 'cjs',
+            loader: {
+                ".ttf": "copy"
+            },
             external: ['electron', 'obsidian'],
             outdir: config.out.path
         });
@@ -55,7 +58,7 @@ export default {
     },
     async "build:style.css"(config) {
         if (!await util.has_changed({
-            glob: path => is_source(path),
+            glob: path => path.path.endsWith(".css"),
             dependents: [config.out.join("styles.css")]
         }))
             return log.verbose("Skipping Rebuild");
@@ -64,6 +67,9 @@ export default {
             entryPoints: ["styles.css"],
             bundle: true,
             sourcemap: true,
+            loader: {
+                ".ttf": "copy"
+            },
             outdir: config.out.path
         });
     },
