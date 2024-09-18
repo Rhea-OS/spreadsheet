@@ -1,0 +1,22 @@
+.spreadsheet-settings {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    
+    grid-template-areas: 
+        'datatypes editor';
+
+    gap: var(--size-2-2);
+}
+
+.spreadsheet-settings > .list-box {
+    grid-area: datatypes;
+    resize: horizontal;
+}
+
+.spreadsheet-settings > .editor {
+    grid-area: editor;
+}
+
+input.monospace {
+    font-family: var(--font-monospace-theme);
+}

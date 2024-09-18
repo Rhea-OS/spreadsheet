@@ -1,4 +1,5 @@
-
+@import url("./listbox.css");
+@import url("./settings.css");
 
 .table-widget {
     display: grid;
@@ -153,6 +154,10 @@ textarea {
     align-items: center;
 }
 
+.table-cell-inner {
+    z-index: 3;
+}
+
 .column-title {
     flex: 1;
     display: flex;
@@ -262,9 +267,31 @@ input[type="text"].column-title-rename {
 }
 
 .selection-range {
-    border: var(--table-border-width) solid hsl(var(--accent-h), var(--accent-s), var(--accent-l));
+    /* border: var(--indentation-guide-width) solid var(--indentation-guide-color-active); */
     /*position: absolute;*/
+    background: hsla(var(--accent-h), var(--accent-s), var(--accent-l), 25%);
+    outline: var(--table-border-width) solid hsl(var(--accent-h), var(--accent-s), var(--accent-l));
+    border-radius: var(--radius-s);
     pointer-events: none;
+
+    --expand: 6px;
+
+    padding: 1px 0 0 1px;
+    box-sizing: content-box;
+    margin: -1px 0 0 -1px;
+    z-index: 2;
+}
+
+.selection-range.column-vector {
+    border-top: none;
+    border-top-left-radius: 0;
+    border-top-right-radius: 0;
+}
+
+.selection-range.row-vector {
+    border-left: none;
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
 }
 
 .selection-range.in-progress {

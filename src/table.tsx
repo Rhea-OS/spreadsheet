@@ -1,5 +1,5 @@
 import React from "react"
-import {Value} from "./spreadsheet.js";
+import {Value} from "./viewport.js";
 
 export const DEFAULT_COLUMN_WIDTH = 128;
 export const MIN_COLUMN_WIDTH = 24;
@@ -57,5 +57,9 @@ export function TableCell(props: {
             gridRow: props.row + 2,
             gridColumn: props.col + 2
         }}
-    >{props.children.renderer().cell(props.children)}</div>;
+    >
+        <div className="table-cell-inner">
+            {props.children.renderer().cell(props.children)}
+        </div>
+    </div>;
 }

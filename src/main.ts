@@ -1,27 +1,21 @@
 import * as path from 'node:path';
 import * as obs from 'obsidian';
 
-import Spreadsheet, {SPREADSHEET_VIEW} from "./spreadsheet.js";
-import SettingsTab from "./settingsTab.js";
+import Spreadsheet, {SPREADSHEET_VIEW} from "./viewport.js";
+import SettingsTab, { default_settings, Settings } from "./settingsTab.js";
 
 export default class SpreadsheetPlugin extends obs.Plugin {
-    settings: SettingsTab | null = null;
+    settingsTab: SettingsTab | null = null;
+    settings: Settings = default_settings;
 
     async onload() {
         this.registerView(SPREADSHEET_VIEW, leaf => new Spreadsheet(leaf));
         this.registerExtensions(["csv", "tab"], SPREADSHEET_VIEW);
 
-        this.addSettingTab(this.settings = new SettingsTab(this.app, this));
+        this.addSettingTab(this.settingsTab = new SettingsTab(this.app, this));
 
-        this.addCommand({
-            id: "open-new-spreadsheet",
-            name: "New Spreadsheet",
-            callback: async () => {
-                // this.app.vault.create(obs.normalizePath(i));
-                // this.app.vault.getRoot
-                // return await this.app.workspace.getLeaf(true).setViewState({ type: SPREADSHEET_VIEW, active: true });
-            }
-        });
+        this.settings = await this.loadData()
+            .then(res => Object.assign({}, default_settings, res));
 
         this.registerEvent(this.app.workspace.on("file-menu", (menu, file) => menu
             .addItem(item => item
@@ -43,13 +37,4 @@ export default class SpreadsheetPlugin extends obs.Plugin {
             }
         }).commands.executeCommandById(command);
     }
-
-    async loadSettings() {
-        this.settings?.load(await this.loadData());
-		// this.settings = Object.assign({}, default_settings, await this.loadData());
-	}
-
-	async saveSettings() {
-		await this.saveData(this.settings?.get());
-	}
 }

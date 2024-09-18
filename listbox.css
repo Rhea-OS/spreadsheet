@@ -1,0 +1,75 @@
+.list-box {
+    -webkit-app-region: no-drag;
+    background: var(--background-modifier-form-field);
+    border: var(--input-border-width) solid var(--background-modifier-border);
+    color: var(--text-normal);
+    font-family: inherit;
+
+    font-size: var(--font-ui-small);
+    border-radius: var(--input-radius);
+    outline: none;
+
+    overflow: hidden;
+}
+
+.list-item {
+    display: flex;
+    margin: 0 0;
+    padding: var(--size-2-1) var(--size-4-2);
+    font-size: var(--font-ui-smaller);
+    white-space: nowrap;
+    word-break: keep-all;
+    
+    align-items: center;
+    gap: var(--size-2-1);
+}
+
+.list-item:focus, .list-item.active {
+    background: var(--text-selection);
+}
+
+.list-box:focus .list-item:focus, .list-box:focus .list-item.active {
+    background: hsl(var(--accent-h), var(--accent-s), var(--accent-l));
+    color: var(--text-on-accent);
+}
+
+.list-box-viewport {
+    flex: 1;
+}
+
+.icon-button:hover {
+    background: var(--text-selection);
+}
+
+textarea.command-editor {
+    resize: vertical;
+    width: 100%;
+    font-family: var(--font-monospace-theme), monospace;
+}
+
+.button-group {
+    display: flex;
+    flex-direction: row;
+    padding: 0 var(--size-4-2);
+    align-items: center;
+    width: 100%;
+    background: var(--color-base-20);
+}
+
+.button-group .icon-button {
+    background: none;
+    border: none;
+    box-shadow: none;
+    line-height: 1em;
+    /*padding: var(--size-2-2);*/
+}
+
+.flex {
+    display: flex;
+    flex-direction: row;
+    gap: var(--size-2-2);
+}
+
+.fill {
+    flex: 1;
+}

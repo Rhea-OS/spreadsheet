@@ -3,7 +3,7 @@ import * as chrono from 'chrono-node';
 import * as luxon from 'luxon';
 import * as obs from 'obsidian';
 
-import {Value} from "./spreadsheet.js";
+import {Value, Selection} from "./viewport.js";
 import {DEFAULT_ROW_HEIGHT} from "./table.js";
 
 export type ResizeState = {
@@ -15,7 +15,7 @@ export type ResizeState = {
     prevMouseY: number,
 };
 
-export default function FormulaBar(props: { activeCell: Value }) {
+export default function FormulaBar(props: { selection: Selection.CellGroup[] }) {
     const [resize, setResize] = React.useState<ResizeState>({
         isResizing: false,
         height: DEFAULT_ROW_HEIGHT
@@ -49,7 +49,6 @@ export default function FormulaBar(props: { activeCell: Value }) {
     return <div className={"formula"}
                 style={{height: `${resize.height}px`}}>
         <div className={"custom-input"}>
-            {props.activeCell.renderer().formula(props.activeCell)}
         </div>
         <span
             className={"resize-handle horizontal"}
@@ -78,11 +77,15 @@ export namespace renderers {
         },
         formula<Props extends Value>(props: Props): React.ReactNode {
             React.useSyncExternalStore(props.onChange, () => props.getRaw());
-            // const ref = React.createRef<HTMLTextAreaElement>();
-            // setTimeout(() => ref.current?.focus());
+            const ref = React.createRef<HTMLTextAreaElement>();
+            
+            React.useEffect(() => {
+                ref.current?.focus();
+                ref.current?.select();
+            }, [props]);
 
             return <textarea
-                // ref={ref}
+                ref={ref}
                 autoFocus={true}
                 value={props.getRaw()}
                 onChange={e => props.setRaw(e.target.value)}/>
@@ -101,6 +104,11 @@ export namespace renderers {
                 return <span className={"raw"}>
                     {"Invalid Date"}
                 </span>
+
+            React.useEffect(() => {
+                // ref.current?.focus();
+                // ref.current?.select();
+            }, [props]);
 
             const date = luxon.DateTime.fromJSDate(parsed);
 
