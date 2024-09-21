@@ -1,8 +1,10 @@
-import * as obs from "obsidian";
+import React from 'react';
 import * as rdom from "react-dom/client";
+import * as obs from "obsidian";
+import StateManager from '@j-cake/jcake-utils/state';
 
-import { DEFAULT_COLUMN_WIDTH, DEFAULT_ROW_HEIGHT } from "./table.js";
-import { CellRenderer, renderers } from "./formula.js";
+import { DEFAULT_COLUMN_WIDTH, DEFAULT_ROW_HEIGHT } from "./components/table.js";
+import { CellRenderer, renderers } from "./.formula.js";
 import { Ui } from "./spreadsheet.js";
 
 export const SPREADSHEET_VIEW = "spreadsheet-view";
@@ -22,13 +24,13 @@ export interface FrontMatter extends Record<string, any> {
 }
 
 export interface Value {
-    setRaw(raw: string): void,
+    isComputedValue: boolean,
 
+    setRaw(raw: string): void,
     getRaw(): string,
 
     onChange: (callback: (raw: string) => void) => () => void,
-
-    renderer(): CellRenderer
+    // render(editMode: boolean, exitEditMode: () => void): React.ReactNode
 }
 
 export function value(raw: string, sheet: Spreadsheet): Value {
@@ -38,6 +40,7 @@ export function value(raw: string, sheet: Spreadsheet): Value {
     let lastUpdate: Date = new Date();
 
     const value: Value = {
+        isComputedValue: raw.startsWith("="),
         setRaw: data => {
             raw = data;
             for (const watch of watches)
@@ -49,22 +52,30 @@ export function value(raw: string, sheet: Spreadsheet): Value {
             return () => watches.includes(callback) ? void watches.splice(watches.indexOf(callback), 1) : void 0
         },
 
-        renderer(): CellRenderer {
-            if (lastUpdate < sheet.lastChanged) {
-                const row = sheet.raw?.find(row => row.includes(value));
-                const col = row?.findIndex(cell => cell == value);
+        // render(editMode: boolean, exitEditMode: () => void): React.ReactNode {
+        //     const ref = React.createRef<HTMLInputElement>();
 
-                lastUpdate = new Date();
+        //     React.useEffect(() => {
+        //         ref.current?.focus?.();
+        //         ref.current?.select?.();
+        //     }, [editMode]);
 
-                if (typeof col == "number")
-                    return renderers[type = sheet.columnType(col)];
-            }
-
-            return renderers[type];
-        }
+        //     if (editMode)
+        //         return <input type="text"
+        //             ref={ref}
+        //             value={this.getRaw()} 
+        //             onChange={e => this.setRaw(e.target.value)} 
+        //             onBlur={() => exitEditMode()}/>;
+        //     return <>{this.getRaw()}</>;
+        // }
     };
 
     return value;
+}
+
+export interface EditorState {
+    selection: Selection.CellGroup[],
+    activeCell: Selection.CellGroup | null
 }
 
 export interface DocumentProperties {
@@ -105,6 +116,8 @@ export default class Spreadsheet extends obs.TextFileView {
         uriEncoding: false
     };
 
+    state: StateManager<EditorState>;
+
     constructor(leaf: obs.WorkspaceLeaf) {
         super(leaf);
 
@@ -121,6 +134,10 @@ export default class Spreadsheet extends obs.TextFileView {
         this.notifyChange = notifyChange;
 
         this.raw[0].push(value("", this));
+
+        this.state = new StateManager({
+
+        });
     }
 
     public readonly onExternalChange: (watcher: () => void) => (() => void);

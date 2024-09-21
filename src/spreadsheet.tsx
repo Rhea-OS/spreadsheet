@@ -2,8 +2,7 @@ import React from 'react';
 import * as obs from 'obsidian';
 
 import Spreadsheet, { Selection } from './viewport.js';
-// import FormulaBar, { renderers } from './formula.js';
-import Table, { DEFAULT_COLUMN_WIDTH, MIN_COLUMN_WIDTH, DEFAULT_ROW_HEIGHT, MIN_ROW_HEIGHT } from './table.js';
+import Table, { DEFAULT_COLUMN_WIDTH, MIN_COLUMN_WIDTH, DEFAULT_ROW_HEIGHT, MIN_ROW_HEIGHT } from './components/table.js';
 
 export type ResizeState = {
     isResizing: false,
@@ -15,7 +14,6 @@ export type ResizeState = {
 };
 
 export function Ui(props: { sheet: Spreadsheet }) {
-    // const [active, setActive] = React.useState(props.sheet.raw[0][0]);
     const [, setResize] = React.useState<ResizeState>({
         isResizing: false,
     });
@@ -25,6 +23,9 @@ export function Ui(props: { sheet: Spreadsheet }) {
         selection: [{ row: 0, col: 0 }] as Selection.CellGroup[],
         startCell: null as null | Selection.Cell | Selection.Vector
     });
+
+    React.useEffect(() => props.sheet.state.dispatch("sync-selection", { selection: selection.selection }), [selection]);
+    React.useMemo()
 
     const documentProperties = React.useSyncExternalStore(props.sheet.onExternalChange, () => props.sheet.documentProperties);
 
@@ -97,17 +98,14 @@ export function Ui(props: { sheet: Spreadsheet }) {
             setSelection(prev => ({ ...prev, startCell: null }));
         }}>
 
-        {/*<SelectionBar/>*/}
-
-        {/* <FormulaBar selection={selection.selection} /> */}
-
-        <Table raw={props.sheet.raw}
+        <Table raw={props.sheet}
             columnWidths={documentProperties.columnWidths}
             rowHeights={documentProperties.rowHeights}
 
             mouseUp={(row, col) => endSelection({ row, col }, true)}
             mouseMove={(row, col) => alterSelection({ row, col })}
-            mouseDown={(row, col) => beginSelection({ row, col })}>
+            mouseDown={(row, col) => beginSelection({ row, col })}
+            moveEditor={(relX: number, relY: number) => {}}>
 
             <>
                 {documentProperties.columnTitles.map((column, col) =>
@@ -119,8 +117,8 @@ export function Ui(props: { sheet: Spreadsheet }) {
                         }}
                         onContextMenu={e => columnContextMenu(e, col, props.sheet, setIsRenamingColumn)}
                         onDoubleClick={e => setIsRenamingColumn(col)}
-                        onMouseDown={e => beginSelection({ col })}
-                        onMouseUp={e => endSelection({ col }, true)}>
+                        onMouseDown={e => e.button == 0 && beginSelection({ col })}
+                        onMouseUp={e => e.button == 0 && endSelection({ col }, true)}>
                         <div className={"column-title"}>
                             {isRenamingColumn == col ? <input
                                 type={"text"}

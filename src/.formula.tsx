@@ -4,7 +4,7 @@ import * as luxon from 'luxon';
 import * as obs from 'obsidian';
 
 import {Value, Selection} from "./viewport.js";
-import {DEFAULT_ROW_HEIGHT} from "./table.js";
+import {DEFAULT_ROW_HEIGHT} from "./components/table.js";
 
 export type ResizeState = {
     isResizing: false,

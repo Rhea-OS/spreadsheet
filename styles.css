@@ -151,11 +151,19 @@ textarea {
 
     display: flex;
 
-    align-items: center;
+    align-items: stretch;
+    justify-content: stretch;
 }
 
 .table-cell-inner {
     z-index: 3;
+    flex: 1;
+}
+
+.table-cell-inner > :is(textarea, input) {
+    border-radius: 0;
+    margin: 0;
+    border: none;
 }
 
 .column-title {

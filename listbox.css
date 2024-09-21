@@ -9,6 +9,8 @@
     border-radius: var(--input-radius);
     outline: none;
 
+    min-width: 128px;
+
     overflow: hidden;
 }
 
