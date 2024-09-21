@@ -24,8 +24,12 @@ export function Ui(props: { sheet: Spreadsheet }) {
         startCell: null as null | Selection.Cell | Selection.Vector
     });
 
-    React.useEffect(() => props.sheet.state.dispatch("sync-selection", { selection: selection.selection }), [selection]);
-    React.useMemo()
+    React.useEffect(() => {
+        props.sheet.state.dispatch("sync-selection", { selection: selection.selection });
+        props.sheet.state.dispatch("change-active", { activeCell: null });
+    }, [selection.selection]);
+
+    React.useEffect(() => props.sheet.state.dispatch("change-active", { activeCell: null }), [isRenamingColumn]);
 
     const documentProperties = React.useSyncExternalStore(props.sheet.onExternalChange, () => props.sheet.documentProperties);
 
@@ -47,28 +51,14 @@ export function Ui(props: { sheet: Spreadsheet }) {
             }));
     };
 
-    // React.useEffect(() => {
-    //     if (!selection.selection[0])
-    //         setActive(props.sheet.raw[0][0]);
-
-    //     else if (Selection.isCell(selection.selection[0]))
-    //         setActive(props.sheet.raw[selection.selection[0].row][selection.selection[0].col]);
-
-    //     else if (Selection.isRange(selection.selection[0])) {
-    //         const range = Selection.normaliseRange(selection.selection[0]);
-    //         setActive(props.sheet.raw[range.from.row][range.from.col]);
-    //     } else if (Selection.isRowVector(selection.selection[0]))
-    //         setActive(props.sheet.raw[selection.selection[0].row][0]);
-    //     else if (Selection.isColumnVector(selection.selection[0]))
-    //         setActive(props.sheet.raw[0][selection.selection[0].col])
-    //     else if (Selection.isRowVectorRange(selection.selection[0])) {
-    //         const range = Selection.normaliseVectorRange(selection.selection[0]) as Selection.RowVectorRange;
-    //         setActive(props.sheet.raw[range.from.row][0]);
-    //     } else if (Selection.isColumnVectorRange(selection.selection[0])) {
-    //         const range = Selection.normaliseVectorRange(selection.selection[0]) as Selection.ColumnVectorRange;
-    //         setActive(props.sheet.raw[0][range.from.col]);
-    //     }
-    // }, [selection]);
+    const handleEditMode = (e: React.MouseEvent<HTMLElement>, ok: () => void) => {
+        if (props.sheet.state.get().activeCell == null)
+            ok();
+        else {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+    };
 
     return <section
         className={"table-widget"}
@@ -104,8 +94,7 @@ export function Ui(props: { sheet: Spreadsheet }) {
 
             mouseUp={(row, col) => endSelection({ row, col }, true)}
             mouseMove={(row, col) => alterSelection({ row, col })}
-            mouseDown={(row, col) => beginSelection({ row, col })}
-            moveEditor={(relX: number, relY: number) => {}}>
+            mouseDown={(row, col) => beginSelection({ row, col })}>
 
             <>
                 {documentProperties.columnTitles.map((column, col) =>
@@ -117,8 +106,9 @@ export function Ui(props: { sheet: Spreadsheet }) {
                         }}
                         onContextMenu={e => columnContextMenu(e, col, props.sheet, setIsRenamingColumn)}
                         onDoubleClick={e => setIsRenamingColumn(col)}
-                        onMouseDown={e => e.button == 0 && beginSelection({ col })}
-                        onMouseUp={e => e.button == 0 && endSelection({ col }, true)}>
+                        onMouseDown={e => handleEditMode(e, () => e.button == 0 && beginSelection({ col }))}
+                        onMouseUp={e => handleEditMode(e, () => e.button == 0 && endSelection({col}, true))}>
+
                         <div className={"column-title"}>
                             {isRenamingColumn == col ? <input
                                 type={"text"}
@@ -160,8 +150,8 @@ export function Ui(props: { sheet: Spreadsheet }) {
                         gridColumn: 1,
                         gridRow: row + 2
                     }}
-                    onMouseDown={e => beginSelection({ row })}
-                    onMouseUp={e => endSelection({ row }, true)}
+                    onMouseDown={e => handleEditMode(e, () => beginSelection({ row }))}
+                    onMouseUp={e => handleEditMode(e, () => endSelection({ row }, true))}
                     onContextMenu={e => rowContextMenu(e, row, props.sheet)}>
                     <div className={"row-title"}>{row + 1}</div>
                     <span
@@ -293,6 +283,8 @@ export function columnContextMenu(e: React.MouseEvent, col: number, sheet: Sprea
 }
 
 export function rowContextMenu(e: React.MouseEvent, row: number, sheet: Spreadsheet) {
+    sheet.state.dispatch('change-active', { activeCell: null });
+
     const menu = new obs.Menu();
 
     menu.addItem(item => item

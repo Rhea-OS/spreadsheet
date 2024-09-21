@@ -114,7 +114,7 @@ export function TextFormatEditor(props: { text: Text & { name: string } }) {
                 description="Your textual datatype should have a format associated with it validate it against user input, and to extract necessary information from it. Any regular expression is valid here."
                 lineFormat={/^.*$/}
                 value={text.format}
-                onChange={format => setText(prev => ({ ...prev, format: format }))} />
+                onChange={(format: string) => setText(prev => ({ ...prev, format: format }))} />
         </section>
     </>;
 }
@@ -134,15 +134,15 @@ export function NumericFormatEditor(props: { numeric: Numeric & { name: string }
                 description='How values of this unit are parsed/printed. The numeric value of your unit is substituted for {}.'
                 lineFormat={/^[^\{]*\{\}[^\{]*$/}
                 value={numeric.format}
-                onChange={value => setNumeric(prev => ({
+                onChange={(format: string) => setNumeric(prev => ({
                     ...prev,
-                    format: value
+                    format: format
                 }))} />
             <Setting title='Associated Unit'
                 description='Which unit is associated with this datatype. This value helps in automatic unit conversion.'
                 options={{}}
                 value=''
-                onChange={unit => setNumeric(prev => ({
+                onChange={(_unit: string) => setNumeric(prev => ({
                     ...prev,
                     unit: null as any
                 }))} />
@@ -150,7 +150,7 @@ export function NumericFormatEditor(props: { numeric: Numeric & { name: string }
                 description='If this unit is a metric unit, such as metre or gram, then the necessary unit convertions and prefixing will be done automatically.'
                 checked={true}
                 value=''
-                onChange={metric => setNumeric(prev => ({
+                onChange={(metric: boolean) => setNumeric(prev => ({
                     ...prev,
                     metric
                 }))} />
@@ -198,7 +198,7 @@ export function ListEditor(props: { list: List & { name: string } }) {
                             ref={ref}
                             onChange={e => setList(prev => ({ ...prev, options: prev.options.with(a, e.target.value) }))}
                             key={`edit-option-${a}`}
-                            onKeyUp={e => e.key == "Enter" && e.target.blur()}
+                            onKeyUp={e => e.key == "Enter" && (e.target as HTMLInputElement).blur()}
                             className="fill"
                             onBlur={_ => setState(prev => ({ ...prev, isEditing: false }))} /> :
                         <label>{i}</label>

@@ -3,9 +3,9 @@ import * as rdom from "react-dom/client";
 import * as obs from "obsidian";
 import StateManager from '@j-cake/jcake-utils/state';
 
-import { DEFAULT_COLUMN_WIDTH, DEFAULT_ROW_HEIGHT } from "./components/table.js";
-import { CellRenderer, renderers } from "./.formula.js";
-import { Ui } from "./spreadsheet.js";
+import {DEFAULT_COLUMN_WIDTH, DEFAULT_ROW_HEIGHT} from "./components/table.js";
+import {renderers} from "./.formula.js";
+import {Ui} from "./spreadsheet.js";
 
 export const SPREADSHEET_VIEW = "spreadsheet-view";
 
@@ -30,16 +30,16 @@ export interface Value {
     getRaw(): string,
 
     onChange: (callback: (raw: string) => void) => () => void,
-    // render(editMode: boolean, exitEditMode: () => void): React.ReactNode
+
+    spreadsheet: () => Spreadsheet,
 }
 
 export function value(raw: string, sheet: Spreadsheet): Value {
     const watches: ((raw: string) => void)[] = [];
-    let type: keyof typeof renderers = 'raw';
 
-    let lastUpdate: Date = new Date();
+    return {
+        spreadsheet: () => sheet,
 
-    const value: Value = {
         isComputedValue: raw.startsWith("="),
         setRaw: data => {
             raw = data;
@@ -51,31 +51,12 @@ export function value(raw: string, sheet: Spreadsheet): Value {
             watches.push(callback);
             return () => watches.includes(callback) ? void watches.splice(watches.indexOf(callback), 1) : void 0
         },
-
-        // render(editMode: boolean, exitEditMode: () => void): React.ReactNode {
-        //     const ref = React.createRef<HTMLInputElement>();
-
-        //     React.useEffect(() => {
-        //         ref.current?.focus?.();
-        //         ref.current?.select?.();
-        //     }, [editMode]);
-
-        //     if (editMode)
-        //         return <input type="text"
-        //             ref={ref}
-        //             value={this.getRaw()} 
-        //             onChange={e => this.setRaw(e.target.value)} 
-        //             onBlur={() => exitEditMode()}/>;
-        //     return <>{this.getRaw()}</>;
-        // }
     };
-
-    return value;
 }
 
 export interface EditorState {
     selection: Selection.CellGroup[],
-    activeCell: Selection.CellGroup | null
+    activeCell: Selection.Cell | null
 }
 
 export interface DocumentProperties {
@@ -135,13 +116,24 @@ export default class Spreadsheet extends obs.TextFileView {
 
         this.raw[0].push(value("", this));
 
-        this.state = new StateManager({
-
+        this.state = new StateManager<EditorState>({
+            selection: [],
+            activeCell: null
         });
     }
 
     public readonly onExternalChange: (watcher: () => void) => (() => void);
     private readonly notifyChange: (() => void);
+
+    moveActive(relCol: number, relRow: number) {
+        if (this.state.get().activeCell)
+            this.state.dispatch('change-active', prev => ({
+                activeCell: {
+                    row: prev.activeCell?.row! + relRow,
+                    col: prev.activeCell?.col! + relCol
+                }
+            }));
+    }
 
     getViewData(): string {
         const rows = [];
@@ -388,7 +380,7 @@ export namespace Selection {
             return false;
     
         // If the area's two components aren't equal, then fail
-        else if (isRange(left) ? !eqCell(left.from, left.to) : false || isRange(right) ? !eqCell(right.from, right.to) : false)
+        else if ((isRange(left) ? !eqCell(left.from, left.to) : false) || (isRange(right) ? !eqCell(right.from, right.to) : false))
             return false;
     
         return true;

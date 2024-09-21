@@ -72,9 +72,7 @@ textarea {
     background: var(--code-background);
     white-space: var(--code-white-space);
     font: var(--font-ui-small) monospace;
-    /*font: var(--font-monospace-theme);*/
 }
-
 
 .formula:disabled {
     background: transparent;
@@ -160,10 +158,10 @@ textarea {
     flex: 1;
 }
 
-.table-cell-inner > :is(textarea, input) {
+.table-cell-inner > :is(textarea, input, button, select) {
     border-radius: 0;
     margin: 0;
-    border: none;
+    border: none !important;
 }
 
 .column-title {
