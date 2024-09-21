@@ -57,17 +57,13 @@ export function TableCell(props: {
         return () => props.children.spreadsheet().state.off(off);
     }, []);
 
-    React.useEffect(() => {
-        if (edit)
-            props.children.spreadsheet().state.dispatch('change-active', {
-                activeCell: { row: props.row, col: props.col },
-            });
-    }, [edit]);
+    React.useEffect(() => props.children.spreadsheet().state.dispatch('change-active', {
+        activeCell: edit ? { row: props.row, col: props.col } : null,
+    }), [edit]);
 
     const handleEditMode = (e: React.MouseEvent<HTMLElement>, ok: () => void) => {
-        if (props.children.spreadsheet().state.get().activeCell == null)
+        if (props.children.spreadsheet().state.get().activeCell == null) {
             ok();
-        else {
             e.preventDefault();
             e.stopPropagation();
         }

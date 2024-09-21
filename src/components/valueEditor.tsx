@@ -45,10 +45,12 @@ export default function ValueEditor(props: { edit: boolean, setEdit: (edit: bool
                     onKeyDown={e => handleKeyDown(e, props.value)}
                     onBlur={() => props.setEdit(false)}/>
             </> : <>
-                <FormulaEditor value={props.value}/>
+                <FormulaEditor value={props.value} onBlur={() => props.setEdit(false)}/>
             </>
         }</> : <>
-            {value}
+            <span>
+                {value}
+            </span>
         </>}
     </div>;
 }

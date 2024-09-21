@@ -52,9 +52,8 @@ export function Ui(props: { sheet: Spreadsheet }) {
     };
 
     const handleEditMode = (e: React.MouseEvent<HTMLElement>, ok: () => void) => {
-        if (props.sheet.state.get().activeCell == null)
+        if (props.sheet.state.get().activeCell == null) {
             ok();
-        else {
             e.preventDefault();
             e.stopPropagation();
         }

@@ -71,7 +71,6 @@ textarea {
 
     background: var(--code-background);
     white-space: var(--code-white-space);
-    font: var(--font-ui-small) monospace;
 }
 
 .formula:disabled {
@@ -141,6 +140,13 @@ textarea {
     border-right: var(--table-border-width) solid var(--table-border-color);
 }
 
+.table-cell-inner {
+    z-index: 3;
+    flex: 1;
+
+    font-size: var(--font-small);
+}
+
 .table-cell {
     overflow: hidden;
     white-space: nowrap;
@@ -153,15 +159,19 @@ textarea {
     justify-content: stretch;
 }
 
-.table-cell-inner {
-    z-index: 3;
-    flex: 1;
+.table-cell-inner span {
+    display: block;
+    padding-inline-start: var(--size-4-6);
+    padding: var(--size-4-1) var(--size-4-2);
+    font-size: inherit;
 }
 
 .table-cell-inner > :is(textarea, input, button, select) {
     border-radius: 0;
     margin: 0;
     border: none !important;
+    font-size: inherit !important;
+    font-family: var(--font-monospace-theme), monospace;
 }
 
 .column-title {
