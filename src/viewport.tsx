@@ -57,7 +57,16 @@ export function value(raw: string, sheet: Spreadsheet): Value {
 
 export interface EditorState {
     selection: Selection.CellGroup[],
-    activeCell: Selection.Cell | null
+    activeCell: Selection.Cell | null,
+
+    // Values will be sorted according to the first key in the list. If two identical values appear, the next key along is used until no keys left. In which case the row number is used. 
+    sortRows: string[],
+
+    // Each value in the list will be used to create a subgroup. 
+    groupRows: string[],
+
+    // Each row which when passed to all formulas, returns `true` is displayed.
+    filter: Formula[]
 }
 
 export interface DocumentProperties {
