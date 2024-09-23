@@ -6,6 +6,7 @@ import StateManager from '@j-cake/jcake-utils/state';
 import {DEFAULT_COLUMN_WIDTH, DEFAULT_ROW_HEIGHT} from "./components/table.js";
 import {renderers} from "./.formula.js";
 import {Ui} from "./spreadsheet.js";
+import SpreadsheetPlugin from "./main.js";
 
 export const SPREADSHEET_VIEW = "spreadsheet-view";
 
@@ -99,7 +100,7 @@ export default class Spreadsheet extends obs.TextFileView {
 
     state: StateManager<EditorState>;
 
-    constructor(leaf: obs.WorkspaceLeaf) {
+    constructor(leaf: obs.WorkspaceLeaf, readonly plugin: SpreadsheetPlugin) {
         super(leaf);
 
         const watchers: (() => void)[] = [];
@@ -303,7 +304,7 @@ export default class Spreadsheet extends obs.TextFileView {
 
     protected async onOpen(): Promise<void> {
         (this.root = rdom.createRoot(this.contentEl))
-            .render(<Ui sheet={this} />);
+            .render(<Ui sheet={this} settings={this.plugin.settings} />);
     }
 
     protected async onClose(): Promise<void> {

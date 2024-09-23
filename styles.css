@@ -1,27 +1,22 @@
+@import url("./layout.css");
 @import url("./listbox.css");
 @import url("./settings.css");
 
-.table-widget {
-    display: grid;
-
-    grid-template-columns: 1fr;
-    grid-template-rows: auto 1fr;
-
-    grid-template-areas: 'formula' 'table';
-
-    gap: 16px;
-
-    width: 100%;
-    height: 100%;
+.toolbar {
+    /*border: var(--input-border-width) solid var(--background-modifier-border);*/
+    padding: var(--size-2-2);
+    overflow: hidden;
 }
 
-.formula-bar {
-    grid-area: formula;
+.toolbar-button {
     display: flex;
-
     align-items: center;
-
-    gap: 16px;
+    justify-content: center;
+    padding: var(--size-4-2);
+    border-radius: var(--radius-m);
+    border: var(--input-border-width) solid var(--background-modifier-border);
+    box-sizing: content-box;
+    /*height: auto;*/
 }
 
 .selection-indicator {
@@ -37,101 +32,18 @@
     overflow: hidden;
 }
 
-.formula {
-    flex: 1;
-    flex-direction: column;
+/*textarea {*/
+/*    padding-inline-start: var(--size-4-6);*/
+/*    padding: var(--size-4-1) var(--size-4-2);*/
 
-    align-items: stretch;
+/*    resize: none;*/
+/*    width: 100%;*/
+/*    height: 100%;*/
 
-    min-height: var(--input-height);
-    height: var(--input-height);
+/*    background: var(--code-background);*/
+/*    white-space: var(--code-white-space);*/
+/*}*/
 
-    width: 100%;
-}
-
-.formula .custom-input {
-    height: 100%;
-}
-
-.formula .resize-handle {
-    width: 100%;
-}
-
-.formula input {
-    width: 100%;
-}
-
-textarea {
-    padding-inline-start: var(--size-4-6);
-    padding: var(--size-4-1) var(--size-4-2);
-
-    resize: none;
-    width: 100%;
-    height: 100%;
-
-    background: var(--code-background);
-    white-space: var(--code-white-space);
-}
-
-.formula:disabled {
-    background: transparent;
-    pointer-events: none;
-}
-
-.table-container {
-    grid-area: table;
-
-    border-collapse: collapse;
-    box-sizing: border-box;
-
-    display: grid;
-
-    position: relative;
-
-    overflow: auto;
-}
-
-.table-header {
-    grid-row: 1;
-    grid-column: 1 / -1;
-
-    display: grid;
-    grid-template-columns: subgrid;
-    grid-template-rows: subgrid;
-
-    /*position: sticky;*/
-    /*top: 0;*/
-}
-
-.table-body {
-    grid-column: 1 / -1;
-    grid-row: 2 / -1;
-
-    display: grid;
-
-    grid-template-columns: subgrid;
-    grid-template-rows: subgrid;
-}
-
-.table-container {
-    /*border-top: var(--table-border-width) solid var(--table-border-color);*/
-    /*border-left: var(--table-border-width) solid var(--table-border-color);*/
-}
-
-.table-container > * {
-    box-sizing: border-box;
-}
-
-.table-header-cell {
-    display: flex;
-    overflow: hidden;
-    white-space: nowrap;
-    text-overflow: clip;
-
-    font-weight: var(--table-header-weight);
-
-    /*border-top: var(--table-border-width) solid var(--table-border-color);*/
-}
 
 .table-header-cell, .table-cell {
     font-size: var(--font-smallest);

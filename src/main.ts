@@ -2,14 +2,14 @@ import * as path from 'node:path';
 import * as obs from 'obsidian';
 
 import Spreadsheet, {SPREADSHEET_VIEW} from "./viewport.js";
-import SettingsTab, { default_settings, Settings } from "./settingsTab.js";
+import SettingsTab, { default_settings, Settings } from "./settings/settingsTab.js";
 
 export default class SpreadsheetPlugin extends obs.Plugin {
     settingsTab: SettingsTab | null = null;
     settings: Settings = default_settings;
 
     async onload() {
-        this.registerView(SPREADSHEET_VIEW, leaf => new Spreadsheet(leaf));
+        this.registerView(SPREADSHEET_VIEW, leaf => new Spreadsheet(leaf, this));
         this.registerExtensions(["csv", "tab"], SPREADSHEET_VIEW);
 
         this.addSettingTab(this.settingsTab = new SettingsTab(this.app, this));
