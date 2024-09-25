@@ -1,26 +1,22 @@
 import React from 'react';
 
-import {Value} from '../viewport.js';
+import Spreadsheet, { Value } from '../viewport.js';
 import FormulaEditor from './formulaEditor.js';
 
-export function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>, value: Value) {
+export function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>, spreadsheet: Spreadsheet) {
     if (e.key == "Enter" || e.key == "Tab")
         if (!e.shiftKey) {
             e.stopPropagation();
             e.preventDefault();
 
             if (e.key == 'Enter' && e.ctrlKey)
-                value.spreadsheet()
-                    .moveActive(0, -1);
+                spreadsheet.moveActive(0, -1);
             else if (e.key == "Tab" && e.ctrlKey)
-                value.spreadsheet()
-                    .moveActive(-1, 0);
+                spreadsheet.moveActive(-1, 0);
             else if (e.key == "Enter" && !e.ctrlKey)
-                value.spreadsheet()
-                    .moveActive(0, 1);
+                spreadsheet.moveActive(0, 1);
             else if (e.key == "Tab" && !e.ctrlKey)
-                value.spreadsheet()
-                    .moveActive(1, 0);
+                spreadsheet.moveActive(1, 0);
         }
 }
 
@@ -31,7 +27,7 @@ export default function ValueEditor(props: { edit: boolean, setEdit: (edit: bool
     React.useEffect(() => setValue(props.value.getRaw()), [props]);
 
     return <div className="table-cell-inner"
-                onDoubleClick={e => e.button == 0 && props.setEdit(true)}>
+        onDoubleClick={e => e.button == 0 && props.setEdit(true)}>
         {props.edit ? <> {props.value.isComputedValue ?
             <>
                 <textarea
@@ -42,10 +38,10 @@ export default function ValueEditor(props: { edit: boolean, setEdit: (edit: bool
                     onMouseDown={e => e.stopPropagation()}
                     onMouseMove={e => e.stopPropagation()}
                     onMouseUp={e => e.stopPropagation()}
-                    onKeyDown={e => handleKeyDown(e, props.value)}
-                    onBlur={() => props.setEdit(false)}/>
+                    onKeyDown={e => handleKeyDown(e, props.value.spreadsheet())}
+                    onBlur={() => props.setEdit(false)} />
             </> : <>
-                <FormulaEditor value={props.value} onBlur={() => props.setEdit(false)}/>
+                <FormulaEditor value={props.value} onBlur={() => props.setEdit(false)} />
             </>
         }</> : <>
             <span>

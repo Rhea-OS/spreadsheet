@@ -19,7 +19,15 @@ interface TableProps {
     mouseDown: (row: number, col: number) => void,
 }
 
+let syncGlobState: (onStateChange: () => void) => () => void;
+let getGlobState: () => any;
+
 export default function Table(props: TableProps) {
+    React.useSyncExternalStore(syncGlobState ??= onStateChange => {
+        const off = props.raw.state.onStateChange(onStateChange);
+        return () => props.raw.state.off(off);
+    }, getGlobState ??= () => props.raw.state.get());
+
     return <section
         className={"table-container"}
         style={{

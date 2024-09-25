@@ -3,9 +3,9 @@ import * as rdom from "react-dom/client";
 import * as obs from "obsidian";
 import StateManager from '@j-cake/jcake-utils/state';
 
-import {DEFAULT_COLUMN_WIDTH, DEFAULT_ROW_HEIGHT} from "./components/table.js";
-import {renderers} from "./.formula.js";
-import {Ui} from "./spreadsheet.js";
+import { DEFAULT_COLUMN_WIDTH, DEFAULT_ROW_HEIGHT } from "./components/table.js";
+import { renderers } from "./.formula.js";
+import { Ui } from "./spreadsheet.js";
 import SpreadsheetPlugin from "./main.js";
 
 export const SPREADSHEET_VIEW = "spreadsheet-view";
@@ -136,13 +136,20 @@ export default class Spreadsheet extends obs.TextFileView {
     private readonly notifyChange: (() => void);
 
     moveActive(relCol: number, relRow: number) {
-        if (this.state.get().activeCell)
-            this.state.dispatch('change-active', prev => ({
-                activeCell: {
-                    row: prev.activeCell?.row! + relRow,
-                    col: prev.activeCell?.col! + relCol
-                }
-            }));
+        const state = this.state.get();
+
+        const active = {
+            row: Math.max(0, (state.activeCell?.row ?? 0) + relRow),
+            col: Math.max(0, (state.activeCell?.col ?? 0) + relCol)
+        };
+
+        console.log([relCol, relRow], state.activeCell, active);
+        
+        if (active.row >= 0 && !Array.isArray(this.raw[active.row]))
+            this.insertRow(active.row);
+
+        this.state.dispatch('change-active', _ => ({ activeCell: active }));
+        this.state.dispatch("sync-selection", _ => ({ selection: [active] }))
     }
 
     getViewData(): string {
@@ -342,8 +349,8 @@ export namespace Selection {
             col: Math.max(range.from.col, range.to.col)
         }
     });
-    export const normaliseVectorRange = (range: VectorRange): VectorRange => 
-        isColumnVectorRange(range) ? 
+    export const normaliseVectorRange = (range: VectorRange): VectorRange =>
+        isColumnVectorRange(range) ?
             { from: { col: Math.min(range.from.col, range.to.col) }, to: { col: Math.max(range.from.col, range.to.col) } } :
             { from: { row: Math.min(range.from.row, range.to.row) }, to: { row: Math.max(range.from.row, range.to.row) } };
 
@@ -378,21 +385,21 @@ export namespace Selection {
     export const eq = (left: Range | Cell, right: Range | Cell): boolean => {
         left = isRange(left) ? normaliseRange(left) : left;
         right = isRange(right) ? normaliseRange(right) : right;
-    
+
         if (isCell(left) && isCell(right))
             return eqCell(left, right);
-    
+
         else if (isRange(left) && isRange(right))
             return eqRange(left, right);
-    
+
         // We have one range and one cell. The cell must have an area of 1.
         else if (area(left) != area(right))
             return false;
-    
+
         // If the area's two components aren't equal, then fail
         else if ((isRange(left) ? !eqCell(left.from, left.to) : false) || (isRange(right) ? !eqCell(right.from, right.to) : false))
             return false;
-    
+
         return true;
     };
 
@@ -411,5 +418,21 @@ export namespace Selection {
             return { from: { row: to.row }, to };
         else
             return null;
+    }
+
+    export function topLeft(selection: CellGroup[]): Cell | null {
+        return selection.filter(i => isCell(i) || isRange(i))
+            .map(i => isCell(i) ? i : { row: Math.min(i.from.row, i.to.row), col: Math.min(i.from.col, i.to.col) })
+            .sort((i, j) => {
+                if (eqCell(i, j))
+                    return 0;
+
+                else if (i.row > j.row)
+                    return 1;
+                else if (i.col > j.col)
+                    return 1;
+                else
+                    return -1;
+            })[0];        
     }
 }

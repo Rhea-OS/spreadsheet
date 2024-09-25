@@ -1,10 +1,11 @@
 import React from 'react';
 import * as obs from 'obsidian';
 
-import Spreadsheet, {Selection} from './viewport.js';
-import Table, {DEFAULT_COLUMN_WIDTH, DEFAULT_ROW_HEIGHT, MIN_COLUMN_WIDTH, MIN_ROW_HEIGHT} from './components/table.js';
+import Spreadsheet, { Selection } from './viewport.js';
+import Table, { DEFAULT_COLUMN_WIDTH, DEFAULT_ROW_HEIGHT, MIN_COLUMN_WIDTH, MIN_ROW_HEIGHT } from './components/table.js';
 import Toolbar from "./components/toolbar.js";
-import {Settings} from "./settings/settingsTab.js";
+import { Settings } from "./settings/settingsTab.js";
+import { handleKeyDown } from './components/valueEditor.js';
 
 export type ResizeState = {
     isResizing: false,
@@ -22,17 +23,17 @@ export function Ui(props: { sheet: Spreadsheet, settings: Settings }) {
     const [isRenamingColumn, setIsRenamingColumn] = React.useState<null | number>(null);
 
     const [selection, setSelection] = React.useState({
-        selection: [{row: 0, col: 0}] as Selection.CellGroup[],
+        selection: [{ row: 0, col: 0 }] as Selection.CellGroup[],
         startCell: null as null | Selection.Cell | Selection.Vector,
         notFinished: null as null | Selection.Cell | Selection.Vector
     });
 
     React.useEffect(() => {
-        props.sheet.state.dispatch("sync-selection", {selection: selection.selection});
-        props.sheet.state.dispatch("change-active", {activeCell: null});
+        props.sheet.state.dispatch("sync-selection", { selection: selection.selection });
+        props.sheet.state.dispatch("change-active", { activeCell: null });
     }, [selection.selection]);
 
-    React.useEffect(() => props.sheet.state.dispatch("change-active", {activeCell: null}), [isRenamingColumn]);
+    React.useEffect(() => props.sheet.state.dispatch("change-active", { activeCell: null }), [isRenamingColumn]);
 
     const documentProperties = React.useSyncExternalStore(props.sheet.onExternalChange, () => props.sheet.documentProperties);
 
@@ -61,16 +62,14 @@ export function Ui(props: { sheet: Spreadsheet, settings: Settings }) {
             }));
     };
 
-    const handleEditMode = (e: React.MouseEvent<HTMLElement>, ok: () => void) => {
-        if (props.sheet.state.get().activeCell == null) {
-            ok();
-            e.preventDefault();
-            e.stopPropagation();
-        }
-    };
+        
+    const container = React.createRef<HTMLDivElement>();
+    React.useEffect(() => container.current?.focus(), [container]);
 
     return <section
         className={"table-widget"}
+        tabIndex={-1}
+        ref={container}
         onMouseMove={e => setResize(prev => {
             if (!prev.isResizing)
                 return prev;
@@ -93,33 +92,40 @@ export function Ui(props: { sheet: Spreadsheet, settings: Settings }) {
             };
         })}
         onMouseUp={() => {
-            setResize({isResizing: false});
-            setSelection(prev => ({...prev, startCell: null}));
+            setResize({ isResizing: false });
+            setSelection(prev => ({ ...prev, startCell: null }));
+        }}
+        onKeyDownCapture={e => {
+            if (!props.sheet.state.get().activeCell)
+                if (!e.altKey && !e.ctrlKey && !e.metaKey && !e.shiftKey && e.key != "Tab" && e.key != "Enter")
+                    props.sheet.state.dispatch('change-active', prev => ({
+                        activeCell: Selection.topLeft(prev.selection)
+                    }));
         }}>
 
         <Toolbar settings={props.settings} sheet={props.sheet} />
 
         <Table raw={props.sheet}
-               columnWidths={documentProperties.columnWidths}
-               rowHeights={documentProperties.rowHeights}
+            columnWidths={documentProperties.columnWidths}
+            rowHeights={documentProperties.rowHeights}
 
-               mouseUp={(row, col) => endSelection({row, col}, true)}
-               mouseMove={(row, col) => alterSelection({row, col})}
-               mouseDown={(row, col) => beginSelection({row, col})}>
+            mouseUp={(row, col) => endSelection({ row, col }, true)}
+            mouseMove={(row, col) => alterSelection({ row, col })}
+            mouseDown={(row, col) => beginSelection({ row, col })}>
 
             <>
                 {documentProperties.columnTitles.map((column, col) =>
                     <div className={"table-header-cell"}
-                         key={`table-header-${col}`}
-                         style={{
-                             gridColumn: col + 2,
-                             gridRow: 1
-                         }}
-                         onContextMenu={e => columnContextMenu(e, col, props.sheet, setIsRenamingColumn)}
-                         onDoubleClick={e => setIsRenamingColumn(col)}
-                         onMouseDown={e => () => e.button == 0 && beginSelection({col})}
-                         onMouseMove={e => selection.startCell && Selection.isVector(selection.startCell) && e.button == 0 && alterSelection({ col })}
-                         onMouseUp={e => () => e.button == 0 && endSelection({col}, true)}>
+                        key={`table-header-${col}`}
+                        style={{
+                            gridColumn: col + 2,
+                            gridRow: 1
+                        }}
+                        onContextMenu={e => columnContextMenu(e, col, props.sheet, setIsRenamingColumn)}
+                        onDoubleClick={e => setIsRenamingColumn(col)}
+                        onMouseDown={e => () => e.button == 0 && beginSelection({ col })}
+                        onMouseMove={e => selection.startCell && Selection.isVector(selection.startCell) && e.button == 0 && alterSelection({ col })}
+                        onMouseUp={e => () => e.button == 0 && endSelection({ col }, true)}>
 
                         <div className={"column-title"}>
                             {isRenamingColumn == col ? <input
@@ -132,7 +138,7 @@ export function Ui(props: { sheet: Spreadsheet, settings: Settings }) {
                                 onKeyUp={e => ["Tab", "Enter"].includes(e.key) && setIsRenamingColumn(null)}
                                 onChange={e => props.sheet.updateDocumentProperties(prev => ({
                                     columnTitles: prev.columnTitles.with(col, e.currentTarget.value)
-                                }))}/> : column}
+                                }))} /> : column}
                             {props.sheet.columnType(col) != 'raw' ?
                                 <div className={"nav-file-tag"}>
                                     {props.sheet.columnType(col)}
@@ -151,7 +157,7 @@ export function Ui(props: { sheet: Spreadsheet, settings: Settings }) {
                             onResize: size => props.sheet.updateDocumentProperties(prev => ({
                                 columnWidths: prev.columnWidths.with(col, Math.max(size.width, MIN_COLUMN_WIDTH))
                             }))
-                        })}/>
+                        })} />
                     </div>)}
             </>
             <>
@@ -162,9 +168,9 @@ export function Ui(props: { sheet: Spreadsheet, settings: Settings }) {
                         gridColumn: 1,
                         gridRow: row + 2
                     }}
-                    onMouseDown={e => () => beginSelection({row})}
+                    onMouseDown={e => () => beginSelection({ row })}
                     onMouseMove={e => selection.startCell && Selection.isVector(selection.startCell) && e.button == 0 && alterSelection({ row })}
-                    onMouseUp={e => () => endSelection({row}, true)}
+                    onMouseUp={e => () => endSelection({ row }, true)}
                     onContextMenu={e => rowContextMenu(e, row, props.sheet)}>
                     <div className={"row-title"}>{row + 1}</div>
                     <span
@@ -182,11 +188,11 @@ export function Ui(props: { sheet: Spreadsheet, settings: Settings }) {
                             onResize: size => props.sheet.updateDocumentProperties(prev => ({
                                 rowHeights: prev.rowHeights.with(row, Math.max(size.height, MIN_ROW_HEIGHT))
                             }))
-                        })}/>
+                        })} />
                 </div>)}
             </>
 
-            <SelectionIndicator selection={selection} sheet={props.sheet}/>
+            <SelectionIndicator selection={selection} sheet={props.sheet} />
 
         </Table>
     </section>;
@@ -203,58 +209,64 @@ export function SelectionIndicator({ selection, sheet }: {
     return <>
         {[...selection.selection, ...(selection.startCell && selection.notFinished ? [Selection.rangeFromCell(selection.startCell, selection.notFinished)] : [])]
             .filter(i => !!i)
-            .map(selection => {
+            .map((selection, a) => {
                 if (Selection.isRange(selection))
                     return <div className="selection-range"
-                                style={{
-                                    gridRowStart: selection.from.row + 2,
-                                    gridRowEnd: selection.to.row + 3,
-                                    gridColumnStart: selection.from.col + 2,
-                                    gridColumnEnd: selection.to.col + 3,
-                                }}/>
+                        key={`selection-${a}`}
+                        style={{
+                            gridRowStart: selection.from.row + 2,
+                            gridRowEnd: selection.to.row + 3,
+                            gridColumnStart: selection.from.col + 2,
+                            gridColumnEnd: selection.to.col + 3,
+                        }} />
 
                 else if (Selection.isRowVectorRange(selection))
                     return <div className="selection-range row-vector"
-                                style={{
-                                    gridColumnStart: 1,
-                                    gridColumnEnd: sheet.raw[0].length + 2, // TODO: Figure out why CSS grid isn't accepting end values
-                                    gridRowStart: selection.from.row + 2,
-                                    gridRowEnd: selection.to.row + 3
-                                }}/>
+                        key={`selection-${a}`}
+                        style={{
+                            gridColumnStart: 1,
+                            gridColumnEnd: sheet.raw[0].length + 2, // TODO: Figure out why CSS grid isn't accepting end values
+                            gridRowStart: selection.from.row + 2,
+                            gridRowEnd: selection.to.row + 3
+                        }} />
 
                 else if (Selection.isColumnVectorRange(selection))
                     return <div className="selection-range column-vector"
-                                style={{
-                                    gridRowStart: 1,
-                                    gridRowEnd: sheet.raw.length + 2,
-                                    gridColumnStart: selection.from.col + 2,
-                                    gridColumnEnd: selection.to.col + 3
-                                }}/>
+                        key={`selection-${a}`}
+                        style={{
+                            gridRowStart: 1,
+                            gridRowEnd: sheet.raw.length + 2,
+                            gridColumnStart: selection.from.col + 2,
+                            gridColumnEnd: selection.to.col + 3
+                        }} />
 
                 else if (Selection.isCell(selection))
                     return <div className="selection-range"
-                                style={{
-                                    gridRow: selection.row + 2,
-                                    gridColumn: selection.col + 2
-                                }}/>
+                        key={`selection-${a}`}
+                        style={{
+                            gridRow: selection.row + 2,
+                            gridColumn: selection.col + 2
+                        }} />
 
                 else if (Selection.isColumnVector(selection))
                     return <div className="selection-range column-vector"
-                                style={{
-                                    // gridRow: '1 / -1',
-                                    gridRowStart: 1,
-                                    gridRowEnd: sheet.raw.length + 2,
-                                    gridColumn: selection.col + 2
-                                }}/>
+                        key={`selection-${a}`}
+                        style={{
+                            // gridRow: '1 / -1',
+                            gridRowStart: 1,
+                            gridRowEnd: sheet.raw.length + 2,
+                            gridColumn: selection.col + 2
+                        }} />
 
                 else if (Selection.isRowVector(selection))
                     return <div className="selection-range row-vector"
-                                style={{
-                                    gridRow: selection.row + 2,
-                                    gridColumnStart: 1,
-                                    gridColumnEnd: sheet.raw[0].length + 2
-                                    // gridColumn: '1 / -1',
-                                }}/>
+                        key={`selection-${a}`}
+                        style={{
+                            gridRow: selection.row + 2,
+                            gridColumnStart: 1,
+                            gridColumnEnd: sheet.raw[0].length + 2
+                            // gridColumn: '1 / -1',
+                        }} />
             })}
     </>
 }
@@ -333,7 +345,7 @@ export function columnContextMenu(e: React.MouseEvent, col: number, sheet: Sprea
 }
 
 export function rowContextMenu(e: React.MouseEvent, row: number, sheet: Spreadsheet) {
-    sheet.state.dispatch('change-active', {activeCell: null});
+    sheet.state.dispatch('change-active', { activeCell: null });
 
     const menu = new obs.Menu();
 

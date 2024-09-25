@@ -8,7 +8,7 @@ import Tools, {Tool} from '../actions.js';
 export default function Toolbar(props: { settings: Settings, sheet: Spreadsheet }) {
     return <div className={"flex toolbar"}>
         {props.settings.toolbar
-            .map(item => typeof item == 'string' ? toolRenderers[Tools[item].type](Tools[item]) : <span className={"gap"}/> )}
+            .map((item, a) => typeof item == 'string' ? toolRenderers[Tools[item].type](Tools[item]) : <span className={"gap"} key={`toolbar-spacer-${arguments}`}/> )}
     </div>
 }
 
@@ -18,7 +18,7 @@ const Icon = (props: { icon: keyof typeof icons.icons, size?: number }) => {
 }
 
 export const toolRenderers = {
-    button: tool => <button className={"toolbar-button"}>
+    button: tool => <button className={"toolbar-button"} key={`toolbar-item-${tool.label}`}>
         <Icon icon={tool.icon} />
     </button>,
     viewport: tool => null
