@@ -68,3 +68,26 @@
 
     /*border-top: var(--table-border-width) solid var(--table-border-color);*/
 }
+
+.input-modal {
+    display: grid;
+
+    grid-template-columns: repeat(2, auto);
+    grid-template-rows: repeat(2, auto);
+
+    gap: var(--size-4-2);
+
+    grid-template-areas:
+        'input   input'
+        'buttons buttons';
+}
+
+.input-modal > input[type="text"] {
+    grid-area: input;
+}
+
+.input-modal > .buttons {
+    grid-area: buttons;
+    display: flex;
+    flex-direction: row-reverse;
+}

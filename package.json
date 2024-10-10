@@ -6,7 +6,7 @@
     "dependencies": {
         "@j-cake/jcake-utils": "latest",
         "chalk": "latest",
-        "expressions": "link:../expressions",
+        "expressions": "link:../expression",
         "lucide-react": "latest",
         "luxon": "latest",
         "react": "latest",
