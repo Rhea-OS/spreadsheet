@@ -6,12 +6,12 @@
     "dependencies": {
         "@j-cake/jcake-utils": "latest",
         "chalk": "latest",
-        "expressions": "link:../expression",
         "lucide-react": "latest",
         "luxon": "latest",
         "react": "latest",
         "react-dom": "latest",
-        "chrono-node": "https://github.com/wanasit/chrono.git"
+        "chrono-node": "https://github.com/wanasit/chrono.git",
+        "expression": "link:../expression/expression-js/build/pkg"
     },
     "scripts": {
         "build": "build phony:all phony:install"

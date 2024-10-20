@@ -2,6 +2,7 @@ import React from 'react';
 import * as rdom from "react-dom/client";
 import * as obs from "obsidian";
 import StateManager from '@j-cake/jcake-utils/state';
+import * as expr from 'expression';
 
 import { DEFAULT_COLUMN_WIDTH, DEFAULT_ROW_HEIGHT } from "./components/table.js";
 import { renderers } from "./.formula.js";
@@ -66,7 +67,7 @@ export interface EditorState {
     groupRows: string[],
 
     // Each row which when passed to all formulas, returns `true` is displayed.
-    filter: Formula[]
+    // filter: Formula[]
 }
 
 export interface DocumentProperties {
@@ -85,6 +86,8 @@ export interface DocumentProperties {
 
 export default class Spreadsheet extends obs.TextFileView {
     raw: Value[][] = [[]];
+
+    cx: expr.Context;
 
     private root: rdom.Root | null = null;
     #change: Date = new Date();
@@ -113,6 +116,15 @@ export default class Spreadsheet extends obs.TextFileView {
         super(leaf);
 
         const watchers: (() => void)[] = [];
+
+        this.cx = new expr.Context(new expr.DataSource({
+            countRows: () => this.raw.length,
+            getRow: (row: number) => this.raw[row],
+            listColumns: () => this.documentProperties.columnTitles,
+            listRows: () => this.raw.map(i => i.map(j => j.getRaw()))
+        }));
+
+        console.log(this.cx.evaluate("1+2"));
 
         const onExternalChange = function (this: Spreadsheet, watcher: () => void): () => void {
             watchers.push(watcher);

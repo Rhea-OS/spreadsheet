@@ -13,6 +13,6 @@ export default function FormulaEditor(props: { value: Value, onBlur: () => void 
                      onMouseDown={e => e.stopPropagation()}
                      onMouseMove={e => e.stopPropagation()}
                      onMouseUp={e => e.stopPropagation()}
-                     onKeyDown={e => handleKeyDown(e, props.value)}
+                     onKeyDown={e => handleKeyDown(e, props.value.spreadsheet())}
                      onBlur={() => props.onBlur()}/>
 }

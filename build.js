@@ -1,7 +1,7 @@
 import fss from "node:fs";
 import fs from "node:fs/promises";
 import cp from "node:child_process";
-import { util, esbuild, log, is_source, Path, chalk } from 'builder';
+import {chalk, esbuild, is_source, log, Path, util} from 'builder';
 
 export default {
     async "build:plugin"(config) {
@@ -18,7 +18,8 @@ export default {
             platform: 'node',
             format: 'cjs',
             loader: {
-                ".ttf": "copy"
+                ".ttf": "copy",
+                ".wasm": "binary"
             },
             external: ['electron', 'obsidian'],
             outdir: config.out.path
@@ -79,13 +80,13 @@ export default {
 
         const install = new Path(process.env['vault_dir']).join(".obsidian/plugins").join(pkg);
 
-        await fs.mkdir(install.path, { recursive: true });
+        await fs.mkdir(install.path, {recursive: true});
 
         for await (const file of config.out.readdir())
             if (await file.isFile())
                 await fs.copyFile(file.path, file.replaceBase(config.out, install).path);
             else if (await file.isDir())
-                await fs.mkdir(file.replaceBase(config.out, install).path, { recursive: true });
+                await fs.mkdir(file.replaceBase(config.out, install).path, {recursive: true});
     },
     async "phony:all"(config) {
         for (const [key, comp] of Object.entries(config.components))

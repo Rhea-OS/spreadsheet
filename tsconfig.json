@@ -15,8 +15,11 @@
         "forceConsistentCasingInFileNames": true,
         "importHelpers": true,
         "strict": true,
+        "paths": {
+            "#expr": ["../build/expression.wasm"]
+        }
     },
     "exclude": [
         "build"
-    ]
+    ],
 }
