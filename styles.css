@@ -123,6 +123,9 @@ input[type="text"].column-title-rename {
     flex: 1;
     display: flex;
 
+    position: sticky;
+    left: 0;
+
     font-weight: var(--table-header-weight);
 
     max-height: calc(100% - 4px);

@@ -4,9 +4,9 @@ import * as obs from "obsidian";
 import StateManager from '@j-cake/jcake-utils/state';
 import * as expr from 'expression';
 
-import { DEFAULT_COLUMN_WIDTH, DEFAULT_ROW_HEIGHT } from "./components/table.js";
-import { renderers } from "./.formula.js";
-import { Ui } from "./spreadsheet.js";
+import {DEFAULT_COLUMN_WIDTH, DEFAULT_ROW_HEIGHT} from "./components/table.js";
+import {renderers} from "./.formula.js";
+import {Ui} from "./spreadsheet.js";
 import SpreadsheetPlugin from "./main.js";
 
 export const SPREADSHEET_VIEW = "spreadsheet-view";
@@ -26,7 +26,7 @@ export interface FrontMatter extends Record<string, any> {
 }
 
 export interface Value {
-    isComputedValue: boolean,
+    isComputedValue: () => boolean,
 
     setRaw(raw: string): void,
     getRaw(): string,
@@ -34,15 +34,19 @@ export interface Value {
     onChange: (callback: (raw: string) => void) => () => void,
 
     spreadsheet: () => Spreadsheet,
+
+    getComputedValue(): string | { err: string };
 }
 
 export function value(raw: string, sheet: Spreadsheet): Value {
     const watches: ((raw: string) => void)[] = [];
 
+    const isComputedValue = () => raw.startsWith("=")
+
     return {
         spreadsheet: () => sheet,
 
-        isComputedValue: raw.startsWith("="),
+        isComputedValue: () => isComputedValue(),
         setRaw: data => {
             raw = data;
             for (const watch of watches)
@@ -53,6 +57,20 @@ export function value(raw: string, sheet: Spreadsheet): Value {
             watches.push(callback);
             return () => watches.includes(callback) ? void watches.splice(watches.indexOf(callback), 1) : void 0
         },
+
+        getComputedValue(): string | { err: string } {
+            if (isComputedValue())
+                try {
+                    return sheet.cx.evaluate(raw.slice(1)).toString();
+                } catch (err) {
+                    if (err)
+                        return { err: err.toString() };
+                    else
+                        return { err: 'Unkown Error' };
+                }
+            else
+                return raw;
+        }
     };
 }
 
@@ -124,7 +142,7 @@ export default class Spreadsheet extends obs.TextFileView {
             listRows: () => this.raw.map(i => i.map(j => j.getRaw()))
         }));
 
-        console.log(this.cx.evaluate("1+2"));
+        // console.log(this.cx.evaluate("1+2"));
 
         const onExternalChange = function (this: Spreadsheet, watcher: () => void): () => void {
             watchers.push(watcher);
@@ -155,7 +173,7 @@ export default class Spreadsheet extends obs.TextFileView {
             col: Math.max(0, (state.activeCell?.col ?? 0) + relCol)
         };
 
-        console.log([relCol, relRow], state.activeCell, active);
+        // console.log([relCol, relRow], state.activeCell, active);
         
         if (active.row >= 0 && !Array.isArray(this.raw[active.row]))
             this.insertRow(active.row);

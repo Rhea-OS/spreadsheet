@@ -17,6 +17,10 @@ export default class SpreadsheetPlugin extends obs.Plugin {
         this.settings = await this.loadData()
             .then(res => Object.assign({}, default_settings, res));
 
+        this.registerMarkdownCodeBlockProcessor("csv", async function (source, container, cx) {
+
+        });
+
         this.registerEvent(this.app.workspace.on("file-menu", (menu, file) => menu
             .addItem(item => item
                 .setTitle("New Spreadsheet")
