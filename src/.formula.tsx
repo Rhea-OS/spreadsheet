@@ -3,7 +3,8 @@ import * as chrono from 'chrono-node';
 import * as luxon from 'luxon';
 import * as obs from 'obsidian';
 
-import {Value, Selection} from "./viewport.js";
+import {Selection} from "./viewport.js";
+import {Value} from "./csv.js";
 import {DEFAULT_ROW_HEIGHT} from "./components/table.js";
 
 export type ResizeState = {

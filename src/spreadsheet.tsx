@@ -1,11 +1,13 @@
 import React from 'react';
 import * as obs from 'obsidian';
 
-import Spreadsheet, {Selection} from './viewport.js';
+import Spreadsheet, {EditorState, Selection} from './viewport.js';
 import Table, {DEFAULT_COLUMN_WIDTH, DEFAULT_ROW_HEIGHT, MIN_COLUMN_WIDTH, MIN_ROW_HEIGHT} from './components/table.js';
 import Toolbar from "./components/toolbar.js";
 import {Settings} from "./settings/settingsTab.js";
-import {handleKeyDown} from './components/valueEditor.js';
+import CSVDocument, {DocumentProperties} from "./csv.js";
+import StateManager from "@j-cake/jcake-utils/state";
+import {renderers} from "./.formula.js";
 
 export type ResizeState = {
     isResizing: false,
@@ -16,27 +18,29 @@ export type ResizeState = {
     onResize: (size: { width: number, height: number }) => void
 };
 
-export function Ui(props: { sheet: Spreadsheet, settings: Settings }) {
+export interface StateHolder {
+    doc: CSVDocument,
+    state: StateManager<EditorState>,
+    app: obs.App,
+
+    moveActive(relCol: number, relRow: number): void,
+    columnType(col: number): keyof typeof renderers,
+
+    insertCol(col: number): void,
+    insertRow(col: number): void,
+    removeCol(row: number): void,
+    removeRow(row: number): void,
+
+    documentProperties: DocumentProperties,
+    updateDocumentProperties(update: (prev: DocumentProperties) => Partial<DocumentProperties>): void,
+
+    onExternalChange(watcher: () => void): () => void
+}
+
+export function Ui(props: { sheet: StateHolder, settings: Settings, toolbar?: boolean }) {
     const [, setResize] = React.useState<ResizeState>({
         isResizing: false,
     });
-    // const [isRenamingColumn, setIsRenamingColumn] = React.useState<null | number>(0);
-    // const columnName = React.useRef<HTMLInputElement>(null);
-    //
-    // React.useMemo(() => {
-    //     if (columnName.current) {
-    //         let ev;
-    //
-    //         // columnName.current.addEventListener("blur", ev = function() {
-    //         //     setIsRenamingColumn(null);
-    //         //     columnName.current?.removeEventListener("blur", ev!);
-    //         // });
-    //
-    //         columnName.current.focus();
-    //         // columnName.current.select();
-    //     }
-    // }, [columnName]);
-
     const [selection, setSelection] = React.useState({
         selection: [{row: 0, col: 0}] as Selection.CellGroup[],
         startCell: null as null | Selection.Cell | Selection.Vector,
@@ -76,8 +80,11 @@ export function Ui(props: { sheet: Spreadsheet, settings: Settings }) {
                     })
                 });
 
-                container.createDiv({ cls: ["buttons"] })
-                    .createEl("button", { cls: ["button"], text: "Rename" }, btn => btn.addEventListener("click", () => this.close()));
+                container.createDiv({cls: ["buttons"]})
+                    .createEl("button", {
+                        cls: ["button"],
+                        text: "Rename"
+                    }, btn => btn.addEventListener("click", () => this.close()));
 
                 this.setContent(frag)
                     .setTitle("Rename Column");
@@ -87,7 +94,7 @@ export function Ui(props: { sheet: Spreadsheet, settings: Settings }) {
 
     // React.useEffect(() => props.sheet.state.dispatch("change-active", { activeCell: null }), [isRenamingColumn]);
 
-    const documentProperties = React.useSyncExternalStore(props.sheet.onExternalChange, () => props.sheet.documentProperties);
+    const documentProperties = React.useSyncExternalStore(props.sheet.onExternalChange.bind(props.sheet), () => props.sheet.documentProperties);
 
     const beginSelection = (start: Selection.Cell | Selection.Vector) => setSelection(prev => ({
         ...prev,
@@ -113,7 +120,6 @@ export function Ui(props: { sheet: Spreadsheet, settings: Settings }) {
                 startCell: null
             }));
     };
-
 
     const container = React.createRef<HTMLDivElement>();
     React.useEffect(() => container.current?.focus(), [container]);
@@ -155,9 +161,9 @@ export function Ui(props: { sheet: Spreadsheet, settings: Settings }) {
                     }));
         }}>
 
-        <Toolbar settings={props.settings} sheet={props.sheet}/>
+        {props.toolbar != false ? <Toolbar settings={props.settings} sheet={props.sheet}/> : null}
+        <Table spreadsheet={props.sheet}
 
-        <Table raw={props.sheet}
                columnWidths={documentProperties.columnWidths}
                rowHeights={documentProperties.rowHeights}
 
@@ -246,7 +252,7 @@ export function SelectionIndicator({selection, sheet}: {
         startCell: null | Selection.Cell | Selection.Vector,
         notFinished: null | Selection.Cell | Selection.Vector
     },
-    sheet: Spreadsheet
+    sheet: StateHolder
 }) {
     return <>
         {[...selection.selection, ...(selection.startCell && selection.notFinished ? [Selection.rangeFromCell(selection.startCell, selection.notFinished)] : [])]
@@ -267,7 +273,7 @@ export function SelectionIndicator({selection, sheet}: {
                                 key={`selection-${a}`}
                                 style={{
                                     gridColumnStart: 1,
-                                    gridColumnEnd: sheet.raw[0].length + 2, // TODO: Figure out why CSS grid isn't accepting end values
+                                    gridColumnEnd: sheet.doc.raw[0].length + 2, // TODO: Figure out why CSS grid isn't accepting end values
                                     gridRowStart: selection.from.row + 2,
                                     gridRowEnd: selection.to.row + 3
                                 }}/>
@@ -277,7 +283,7 @@ export function SelectionIndicator({selection, sheet}: {
                                 key={`selection-${a}`}
                                 style={{
                                     gridRowStart: 1,
-                                    gridRowEnd: sheet.raw.length + 2,
+                                    gridRowEnd: sheet.doc.raw.length + 2,
                                     gridColumnStart: selection.from.col + 2,
                                     gridColumnEnd: selection.to.col + 3
                                 }}/>
@@ -296,7 +302,7 @@ export function SelectionIndicator({selection, sheet}: {
                                 style={{
                                     // gridRow: '1 / -1',
                                     gridRowStart: 1,
-                                    gridRowEnd: sheet.raw.length + 2,
+                                    gridRowEnd: sheet.doc.raw.length + 2,
                                     gridColumn: selection.col + 2
                                 }}/>
 
@@ -306,14 +312,14 @@ export function SelectionIndicator({selection, sheet}: {
                                 style={{
                                     gridRow: selection.row + 2,
                                     gridColumnStart: 1,
-                                    gridColumnEnd: sheet.raw[0].length + 2
+                                    gridColumnEnd: sheet.doc.raw[0].length + 2
                                     // gridColumn: '1 / -1',
                                 }}/>
             })}
     </>
 }
 
-export function columnContextMenu(e: React.MouseEvent, col: number, sheet: Spreadsheet, editColumn: () => void) {
+export function columnContextMenu(e: React.MouseEvent, col: number, sheet: StateHolder, editColumn: () => void) {
     const menu = new obs.Menu();
 
     menu.addItem(item => item
@@ -386,7 +392,7 @@ export function columnContextMenu(e: React.MouseEvent, col: number, sheet: Sprea
     menu.showAtMouseEvent(e.nativeEvent);
 }
 
-export function rowContextMenu(e: React.MouseEvent, row: number, sheet: Spreadsheet) {
+export function rowContextMenu(e: React.MouseEvent, row: number, sheet: StateHolder) {
     sheet.state.dispatch('change-active', {activeCell: null});
 
     const menu = new obs.Menu();

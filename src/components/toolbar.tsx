@@ -4,8 +4,9 @@ import * as icons from 'lucide-react';
 import Spreadsheet from "../viewport.js";
 import {Settings} from "../settings/settingsTab.js";
 import Tools, {Tool} from '../actions.js';
+import {StateHolder} from "../spreadsheet.js";
 
-export default function Toolbar(props: { settings: Settings, sheet: Spreadsheet }) {
+export default function Toolbar(props: { settings: Settings, sheet: StateHolder }) {
     return <div className={"flex toolbar"}>
         {props.settings.toolbar
             .map((item, a) => typeof item == 'string' ? toolRenderers[Tools[item].type](Tools[item]) : <span className={"gap"} key={`toolbar-spacer-${arguments}`}/> )}

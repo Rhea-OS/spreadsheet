@@ -1,9 +1,9 @@
 import React from 'react';
 
-import Spreadsheet, {Value} from '../viewport.js';
-import FormulaEditor from './formulaEditor.js';
+import {Value} from "../csv.js";
+import {StateHolder} from "../spreadsheet.js";
 
-export function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>, spreadsheet: Spreadsheet) {
+export function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>, spreadsheet: StateHolder) {
     if (e.key == "Enter" || e.key == "Tab")
         if (!e.shiftKey) {
             e.stopPropagation();
@@ -20,7 +20,7 @@ export function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>, sprea
         }
 }
 
-export default function ValueEditor(props: { edit: boolean, setEdit: (edit: boolean) => void, value: Value }) {
+export default function ValueEditor(props: { edit: boolean, setEdit: (edit: boolean) => void, value: Value, spreadsheet: StateHolder }) {
     const [value, setValue] = React.useState(props.value.getRaw());
 
     React.useEffect(() => props.value.setRaw(value), [value]);
@@ -37,7 +37,7 @@ export default function ValueEditor(props: { edit: boolean, setEdit: (edit: bool
                 onMouseDown={e => e.stopPropagation()}
                 onMouseMove={e => e.stopPropagation()}
                 onMouseUp={e => e.stopPropagation()}
-                onKeyDown={e => handleKeyDown(e, props.value.spreadsheet())}
+                onKeyDown={e => handleKeyDown(e, props.spreadsheet)}
                 onBlur={() => props.setEdit(false)}/>
         </> : <>
             <ComputedValue value={props.value}/>
