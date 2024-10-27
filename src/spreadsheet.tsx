@@ -2,12 +2,11 @@ import React from 'react';
 import * as obs from 'obsidian';
 
 import Spreadsheet, {EditorState, Selection} from './viewport.js';
-import Table, {DEFAULT_COLUMN_WIDTH, DEFAULT_ROW_HEIGHT, MIN_COLUMN_WIDTH, MIN_ROW_HEIGHT} from './components/table.js';
+import TableOld, {DEFAULT_COLUMN_WIDTH, DEFAULT_ROW_HEIGHT, MIN_COLUMN_WIDTH, MIN_ROW_HEIGHT} from './components/table.old.js';
 import Toolbar from "./components/toolbar.js";
 import {Settings} from "./settings/settingsTab.js";
 import CSVDocument, {DocumentProperties} from "./csv.js";
 import StateManager from "@j-cake/jcake-utils/state";
-import {renderers} from "./.formula.js";
 
 export type ResizeState = {
     isResizing: false,
@@ -24,7 +23,7 @@ export interface StateHolder {
     app: obs.App,
 
     moveActive(relCol: number, relRow: number): void,
-    columnType(col: number): keyof typeof renderers,
+    columnType(col: number): string,
 
     insertCol(col: number): void,
     insertRow(col: number): void,
@@ -37,7 +36,7 @@ export interface StateHolder {
     onExternalChange(watcher: () => void): () => void
 }
 
-export function Ui(props: { sheet: StateHolder, settings: Settings, toolbar?: boolean }) {
+export function Ui(props: { sheet: StateHolder, settings: Settings }) {
     const [, setResize] = React.useState<ResizeState>({
         isResizing: false,
     });
@@ -161,15 +160,15 @@ export function Ui(props: { sheet: StateHolder, settings: Settings, toolbar?: bo
                     }));
         }}>
 
-        {props.toolbar != false ? <Toolbar settings={props.settings} sheet={props.sheet}/> : null}
-        <Table spreadsheet={props.sheet}
+        <Toolbar settings={props.settings} sheet={props.sheet}/>
+        <TableOld spreadsheet={props.sheet}
 
-               columnWidths={documentProperties.columnWidths}
-               rowHeights={documentProperties.rowHeights}
+                  columnWidths={documentProperties.columnWidths}
+                  rowHeights={documentProperties.rowHeights}
 
-               mouseUp={(row, col) => endSelection({row, col}, true)}
-               mouseMove={(row, col) => alterSelection({row, col})}
-               mouseDown={(row, col) => beginSelection({row, col})}>
+                  mouseUp={(row, col) => endSelection({row, col}, true)}
+                  mouseMove={(row, col) => alterSelection({row, col})}
+                  mouseDown={(row, col) => beginSelection({row, col})}>
 
             <>
                 {documentProperties.columnTitles.map((column, col) =>
@@ -242,7 +241,7 @@ export function Ui(props: { sheet: StateHolder, settings: Settings, toolbar?: bo
 
             <SelectionIndicator selection={selection} sheet={props.sheet}/>
 
-        </Table>
+        </TableOld>
     </section>;
 }
 

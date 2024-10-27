@@ -1,99 +1,89 @@
-import React from "react"
+import React from 'react';
 
-import Spreadsheet, {Selection, SPREADSHEET_VIEW} from "../viewport.js";
-import ValueEditor from "./valueEditor.js";
-import {Value} from "../csv.js";
 import {StateHolder} from "../spreadsheet.js";
+import {DEFAULT_COLUMN_WIDTH, DEFAULT_ROW_HEIGHT} from "./table.old.js";
 
-export const DEFAULT_COLUMN_WIDTH = 128;
-export const MIN_COLUMN_WIDTH = 24;
+// export type ColumnHeader = () => React.ReactNode;
+export interface ColumnHeader {
+    title: string,
+    width: number,
 
-export const DEFAULT_ROW_HEIGHT = 28;
-export const MIN_ROW_HEIGHT = 6;
-
-interface TableProps {
-    children?: React.ReactNode[],
-    spreadsheet: StateHolder,
-    columnWidths: number[],
-    rowHeights: number[],
-    mouseUp: (row: number, col: number) => void
-    mouseMove: (row: number, col: number) => void
-    mouseDown: (row: number, col: number) => void,
+    render: (col: ColumnHeader) => React.ReactNode
 }
 
-let syncGlobState: (onStateChange: () => void) => () => void;
-let getGlobState: () => any;
+interface TableRow {
+    id: number;
 
-export default function Table(props: TableProps) {
-    React.useSyncExternalStore(syncGlobState ??= onStateChange => {
-        const off = props.spreadsheet.state.onStateChange(onStateChange);
-        return () => props.spreadsheet.state.off(off);
-    }, getGlobState ??= () => props.spreadsheet.state.get());
-
-    return <section
-        className={"table-container"}
-        style={{
-            gridAutoColumns: `min-content ${props.columnWidths.map(i => `${i ?? DEFAULT_COLUMN_WIDTH}px`).join(' ')} min-content`,
-            gridAutoRows: `min-content ${props.rowHeights.map(i => `${i ?? DEFAULT_ROW_HEIGHT}px`).join(' ')}`,
-        }}>
-
-        <div className={"top-left-corner"}/>
-
-        {props.children ?? null}
-
-        {props.spreadsheet.doc.raw.map((values, row) => values.map((value, col) => <TableCell
-            key={`cell-${row}:${col}`}
-            row={row}
-            col={col}
-            spreadsheet={props.spreadsheet}
-            mouseUp={(row, col) => props.mouseUp(row, col)}
-            mouseMove={(row, col) => props.mouseMove(row, col)}
-            mouseDown={(row, col) => props.mouseDown(row, col)}>{value}</TableCell>))}
-
-    </section>;
+    data: Record<string, () => React.ReactNode>
 }
 
-export function TableCell(props: {
-    children: Value,
-    row: number,
-    col: number,
-    mouseUp: (row: number, col: number) => void
-    mouseMove: (row: number, col: number) => void
-    mouseDown: (row: number, col: number) => void,
-    spreadsheet: StateHolder
-}) {
-    const [edit, setEdit] = React.useState(false);
+export interface TableProps<Row extends TableRow> {
+    children: { data: Row[] },
+    sheet: StateHolder,
 
-    React.useEffect(() => {
-        const off = props.spreadsheet.state.on('change-active', state => setEdit(state.activeCell ? Selection.eqCell(state.activeCell, { row: props.row, col: props.col }) : false));
-        return () => props.spreadsheet.state.off(off);
-    }, []);
+    columns: Record<string, ColumnHeader>
+}
 
-    React.useEffect(() => props.spreadsheet.state.dispatch('change-active', {
-        activeCell: edit ? { row: props.row, col: props.col } : null,
-    }), [edit]);
+export default function Table<Row extends TableRow>(props: TableProps<Row>) {
+    const [columns, setColumns] = React.useState<ColumnHeader[]>(Object.values(props.columns));
 
-    const handleEditMode = (e: React.MouseEvent<HTMLElement>, ok: () => void) => {
-        if (props.spreadsheet.state.get().activeCell == null) {
-            ok();
-            e.preventDefault();
-            e.stopPropagation();
-        }
+    const ref = React.useRef<HTMLDivElement | null>(null);
+
+    const beginResize = (e: React.MouseEvent, columnIndex: number) => {
+
     };
 
-    return <div
-        className={"table-cell"}
-        onMouseUp={e => handleEditMode(e, () => e.button == 0 && props.mouseUp(props.row, props.col))}
-        onMouseMove={e => handleEditMode(e, () => e.button == 0 && props.mouseMove(props.row, props.col))}
-        onMouseDown={e => handleEditMode(e, () => e.button == 0 && props.mouseDown(props.row, props.col))}
+    return <section
+        className={"table-widget"}
+        ref={ref}
+        onMouseOut={e => void 0}>
 
-        style={{
-            gridRow: props.row + 2,
-            gridColumn: props.col + 2
-        }}>
-            <ValueEditor value={props.children} edit={edit} setEdit={edit => setEdit(edit)} spreadsheet={props.spreadsheet}/>
-        
-            {/* {props.children.render(state.editMode, () => setState(prev => ({ ...prev, editMode: false })))} */}
-            {/* {props.children.renderer().cell(props.children)} */}
-    </div>;
+        <section
+            className={"table-container"}
+            style={{
+                gridAutoColumns: `min-content ${columns.map(i => `${i.width ?? DEFAULT_COLUMN_WIDTH}px`).join(' ')} min-content`,
+                gridAutoRows: `min-content`, //  ${props.rowHeights.map(i => `${i ?? DEFAULT_ROW_HEIGHT}px`).join(' ')}
+            }}>
+
+            <div className={"top-left-corner"}/>
+
+            {columns.map((header, colIndex) => <div
+                className={"table-header-cell"}
+                key={`table-header-${colIndex}`}
+                style={{
+                    gridColumn: colIndex + 2,
+                    gridRow: 1
+                }}>
+
+                {header.render(header)}
+
+                <span
+                    className={"resize-handle"}
+                    onMouseDown={e => beginResize(e, colIndex)}/>
+
+            </div>)}
+
+            {props.children.data.map((row, rowIndex) => <>
+                <div
+                    className={"row"}
+                    style={{
+                        gridColumn: 1,
+                        gridRow: rowIndex + 2
+                    }}>
+                    <div className={"row-title"}>{row.id}</div>
+                </div>
+
+                {columns.map((col, colIndex) => <div
+                    className={"table-cell"}
+                    key={`table-cell-${colIndex}:${rowIndex}`}
+                    style={{
+                        gridRow: rowIndex + 2,
+                        gridColumn: colIndex + 2
+                    }}>
+                    {row.data[col.title]()}
+                </div>)}
+            </>)}
+
+        </section>
+    </section>;
 }

@@ -2,19 +2,19 @@
 
 | `Variable`                              | Description                              |
 |-----------------------------------------|------------------------------------------|
-| `--table-background`                    | Table background color                   |
-| `--table-border-width`                  | Table border width                       |
-| `--table-border-color`                  | Table border color                       |
+| `--table-background`                    | TableOld background color                   |
+| `--table-border-width`                  | TableOld border width                       |
+| `--table-border-color`                  | TableOld border color                       |
 | `--table-cell-vertical-alignment`       | Cell vertical alignment                  |
-| `--table-white-space`                   | Table white-space property               |
-| `--table-header-background`             | Table header background color            |
-| `--table-header-background-hover`       | Table header background color (hover)    |
-| `--table-header-border-width`           | Table header border width                |
-| `--table-header-border-color`           | Table header border color                |
-| `--table-header-font`                   | Table header font family                 |
-| `--table-header-size`                   | Table header font size                   |
-| `--table-header-weight`                 | Table header font weight                 |
-| `--table-header-color`                  | Table header text color                  |
+| `--table-white-space`                   | TableOld white-space property               |
+| `--table-header-background`             | TableOld header background color            |
+| `--table-header-background-hover`       | TableOld header background color (hover)    |
+| `--table-header-border-width`           | TableOld header border width                |
+| `--table-header-border-color`           | TableOld header border color                |
+| `--table-header-font`                   | TableOld header font family                 |
+| `--table-header-size`                   | TableOld header font size                   |
+| `--table-header-weight`                 | TableOld header font weight                 |
+| `--table-header-color`                  | TableOld header text color                  |
 | `--table-line-height`                   | Line height for cell text                |
 | `--table-text-size`                     | Cell font size                           |
 | `--table-text-color`                    | Cell text color                          |

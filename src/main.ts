@@ -1,12 +1,8 @@
-import * as dom from 'react-dom/client';
 import * as path from 'node:path';
 import * as obs from 'obsidian';
 
 import Spreadsheet, {SPREADSHEET_VIEW} from "./viewport.js";
 import SettingsTab, { default_settings, Settings } from "./settings/settingsTab.js";
-import CSVDocument from "./csv.js";
-import React from "react";
-import {Ui} from "./spreadsheet.js";
 import inline from "./inline.js";
 
 export default class SpreadsheetPlugin extends obs.Plugin {

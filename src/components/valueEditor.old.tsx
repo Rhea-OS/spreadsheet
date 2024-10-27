@@ -20,7 +20,7 @@ export function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>, sprea
         }
 }
 
-export default function ValueEditor(props: { edit: boolean, setEdit: (edit: boolean) => void, value: Value, spreadsheet: StateHolder }) {
+export default function ValueEditorOld(props: { edit: boolean, setEdit: (edit: boolean) => void, value: Value, spreadsheet: StateHolder }) {
     const [value, setValue] = React.useState(props.value.getRaw());
 
     React.useEffect(() => props.value.setRaw(value), [value]);
@@ -39,9 +39,9 @@ export default function ValueEditor(props: { edit: boolean, setEdit: (edit: bool
                 onMouseUp={e => e.stopPropagation()}
                 onKeyDown={e => handleKeyDown(e, props.spreadsheet)}
                 onBlur={() => props.setEdit(false)}/>
-        </> : <>
+        </> : <span>
             <ComputedValue value={props.value}/>
-        </>}
+        </span>}
     </div>;
 }
 

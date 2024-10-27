@@ -3,7 +3,6 @@ import * as rdom from "react-dom/client";
 import * as obs from "obsidian";
 import StateManager from '@j-cake/jcake-utils/state';
 
-import {renderers} from "./.formula.js";
 import {StateHolder, Ui} from "./spreadsheet.js";
 import SpreadsheetPlugin from "./main.js";
 import CSVDocument, {DocumentProperties, value, Value} from "./csv.js";
@@ -73,7 +72,7 @@ export default class Spreadsheet extends obs.TextFileView implements StateHolder
         return this.doc.documentProperties;
     }
 
-    public columnType(col: number): keyof typeof renderers {
+    public columnType(col: number): string {
         return this.doc.columnType(col)
     }
 

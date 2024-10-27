@@ -1,7 +1,6 @@
 import * as expr from 'expression';
-import {DEFAULT_COLUMN_WIDTH, DEFAULT_ROW_HEIGHT} from "./components/table.js";
+import {DEFAULT_COLUMN_WIDTH, DEFAULT_ROW_HEIGHT} from "./components/table.old.js";
 import * as obs from "obsidian";
-import {renderers} from "./.formula.js";
 
 export interface FrontMatter extends Record<string, any> {
     columnTypes?: string[],
@@ -129,9 +128,9 @@ export default class CSVDocument {
         return this.#props;
     }
 
-    public columnType(col: number): keyof typeof renderers {
-        if (this.#props.columnTypes[col] in renderers)
-            return this.#props.columnTypes[col] as any;
+    public columnType(col: number): string {
+        // if (this.#props.columnTypes[col] in renderers)
+        //     return this.#props.columnTypes[col] as any;
 
         return 'raw';
     }
