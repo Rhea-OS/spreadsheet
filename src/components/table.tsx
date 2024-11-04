@@ -1,4 +1,5 @@
 import React from 'react';
+import useResizeObserver from '@react-hook/resize-observer';
 
 import {StateHolder} from "../spreadsheet.js";
 import {DEFAULT_COLUMN_WIDTH, DEFAULT_ROW_HEIGHT} from "./table.old.js";
@@ -29,9 +30,10 @@ export default function Table<Row extends TableRow>(props: TableProps<Row>) {
 
     const ref = React.useRef<HTMLDivElement | null>(null);
 
-    const beginResize = (e: React.MouseEvent, columnIndex: number) => {
-
-    };
+    const resizeColumn = (colIndex: number, width: number) => setColumns(prev => prev.with(colIndex, {
+        ...prev[colIndex],
+        width
+    }));
 
     return <section
         className={"table-widget"}
@@ -47,21 +49,11 @@ export default function Table<Row extends TableRow>(props: TableProps<Row>) {
 
             <div className={"top-left-corner"}/>
 
-            {columns.map((header, colIndex) => <div
-                className={"table-header-cell"}
-                key={`table-header-${colIndex}`}
-                style={{
-                    gridColumn: colIndex + 2,
-                    gridRow: 1
-                }}>
-
-                {header.render(header)}
-
-                <span
-                    className={"resize-handle"}
-                    onMouseDown={e => beginResize(e, colIndex)}/>
-
-            </div>)}
+            {columns.map((header, colIndex) => <TableHeaderCell
+                onResize={size => resizeColumn(colIndex, size.width + 1)}
+                header={header}
+                colIndex={colIndex}
+            />)}
 
             {props.children.data.map((row, rowIndex) => <>
                 <div
@@ -86,4 +78,28 @@ export default function Table<Row extends TableRow>(props: TableProps<Row>) {
 
         </section>
     </section>;
+}
+
+export function TableHeaderCell(props: {
+    onResize: (bounds: DOMRectReadOnly) => void,
+    header: ColumnHeader,
+    colIndex: number
+}) {
+    const ref = React.useRef<HTMLDivElement>(null);
+
+    useResizeObserver(ref, e => props.onResize(e.contentRect));
+
+    return <div
+        className={"table-header-cell"}
+        key={`table-header-${props.colIndex}`}
+        style={{
+            gridColumn: props.colIndex + 2,
+            gridRow: 1,
+            resize: "horizontal"
+        }}
+        ref={ref}>
+
+        {props.header.render(props.header)}
+
+    </div>
 }

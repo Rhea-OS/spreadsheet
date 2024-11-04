@@ -11,7 +11,8 @@
         "react": "latest",
         "react-dom": "latest",
         "chrono-node": "https://github.com/wanasit/chrono.git",
-        "expression": "link:../expression/expression-js/build/pkg"
+        "expression": "link:../expression/expression-js/build/pkg",
+        "@react-hook/resize-observer": "latest"
     },
     "scripts": {
         "build": "build phony:all phony:install"
