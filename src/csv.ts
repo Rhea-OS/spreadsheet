@@ -1,6 +1,7 @@
 import * as expr from 'expression';
-import {DEFAULT_COLUMN_WIDTH, DEFAULT_ROW_HEIGHT} from "./components/table.old.js";
 import * as obs from "obsidian";
+import {DEFAULT_COLUMN_WIDTH, DEFAULT_ROW_HEIGHT} from "./components/table.js";
+import {Selection} from "./selection.js";
 
 export interface FrontMatter extends Record<string, any> {
     columnTypes?: string[],
@@ -113,15 +114,13 @@ export default class CSVDocument {
 
         const watchers: (() => void)[] = [];
 
-        const onExternalChange = function (this: CSVDocument, watcher: () => void): () => void {
+        const onExternalChange = (watcher: () => void) => {
             watchers.push(watcher);
             return () => watchers.remove(watcher);
-        }.bind(this);
+        };
 
-        const notifyChange = () => watchers.forEach(i => i());
-
-        this.onExternalChange = onExternalChange;
-        this.notifyChange = notifyChange;
+        this.onExternalChange = watcher => onExternalChange(watcher);
+        this.notifyChange = () => watchers.forEach(i => i());
     }
 
     public get documentProperties(): DocumentProperties {

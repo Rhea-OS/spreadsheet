@@ -1,10 +1,9 @@
 import React from 'react';
 import * as icons from 'lucide-react';
 
-import Spreadsheet from "../viewport.js";
 import {Settings} from "../settings/settingsTab.js";
 import Tools, {Tool} from '../actions.js';
-import {StateHolder} from "../spreadsheet.js";
+import {StateHolder} from "../main.js";
 
 export default function Toolbar(props: { settings: Settings, sheet: StateHolder }) {
     return <div className={"flex toolbar"}>

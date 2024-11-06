@@ -19,6 +19,17 @@
     align-items: center;
 }
 
+/* Defined by the spreadsheet, contains the table widget */
+.spreadsheet {
+    grid-area: table;
+
+    display: grid;
+
+    grid-template-columns: subgrid;
+    grid-template-rows: subgrid;
+}
+
+/* Wrapper **within** the table component */
 .table-container {
     grid-area: table;
 

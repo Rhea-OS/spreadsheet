@@ -2,13 +2,12 @@ import * as dom from "react-dom/client";
 
 import CSVDocument, {Value} from "./csv.js";
 import React from "react";
-import {StateHolder} from "./spreadsheet.js";
-import SpreadsheetPlugin from "./main.js";
+import SpreadsheetPlugin, {StateHolder} from "./main.js";
 import {MarkdownPostProcessorContext} from "obsidian";
 import StateManager from "@j-cake/jcake-utils/state";
-import {EditorState} from "./viewport.js";
+import {EditorState} from "./spreadsheet.js";
 import {Settings} from "./settings/settingsTab.js";
-import Table from "./components/table.js";
+import Table, {columnHeadersFromDocument, mkTableCell} from "./components/table.js";
 
 export default async function inline(this: SpreadsheetPlugin, source: string, container: HTMLElement, cx: MarkdownPostProcessorContext) {
     let doc = new CSVDocument();
@@ -47,24 +46,12 @@ export function ReadonlyUi(props: {
 
     return <Table
         sheet={props.sheet}
-        columns={Object.fromEntries(props.sheet.documentProperties.columnTitles.map((col, colIndex) => [col, {
-            title: col,
-            width: props.sheet.documentProperties.columnWidths[colIndex],
-            render: col => <span className={"column-title"}>{col.title}</span>
-        }]))}>
-        {{
-            data: props.sheet.doc.raw.map((row, rowIndex) => ({
-                id: rowIndex,
-                data: Object.fromEntries(row.map((col, colIndex) => [
-                    props.sheet.documentProperties.columnTitles[colIndex],
-                    () => <div className={"table-cell-inner"}>
-                        <span>
-                            {computedValue(col)}
-                        </span>
-                    </div>
-                ]))
-            }))
-        }}
+        renderColumn={col => <span className={"column-title"}>{col.title}</span>}>
+        {mkTableCell(props.sheet, col => <div className={"table-cell-inner"}>
+            <span>
+                {computedValue(col)}
+            </span>
+        </div>)}
     </Table>
 }
 

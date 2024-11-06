@@ -1,425 +1,239 @@
 import React from 'react';
-import * as obs from 'obsidian';
+import * as rdom from "react-dom/client";
+import * as obs from "obsidian";
+import StateManager from '@j-cake/jcake-utils/state';
 
-import Spreadsheet, {EditorState, Selection} from './viewport.js';
-import TableOld, {DEFAULT_COLUMN_WIDTH, DEFAULT_ROW_HEIGHT, MIN_COLUMN_WIDTH, MIN_ROW_HEIGHT} from './components/table.old.js';
-import Toolbar from "./components/toolbar.js";
+import SpreadsheetPlugin, {StateHolder} from "./main.js";
+import CSVDocument, {DocumentProperties, value, Value} from "./csv.js";
 import {Settings} from "./settings/settingsTab.js";
-import CSVDocument, {DocumentProperties} from "./csv.js";
-import StateManager from "@j-cake/jcake-utils/state";
+import Toolbar from "./components/toolbar.js";
+import Table, {mkTableCell} from "./components/table.js";
+import {computedValue} from "./inline.js";
+import {Selection} from "./selection.js";
+import {columnContextMenu} from "./contextMenu.js";
+import {renameColumn} from "./renameColumn.js";
 
-export type ResizeState = {
-    isResizing: false,
-} | {
-    isResizing: true,
-    prevMouse: { x: number, y: number },
-    prevSize: { width: number, height: number },
-    onResize: (size: { width: number, height: number }) => void
-};
+export const SPREADSHEET_VIEW = "spreadsheet-view";
 
-export interface StateHolder {
-    doc: CSVDocument,
-    state: StateManager<EditorState>,
-    app: obs.App,
+export interface EditorState {
+    selection: Selection.CellGroup[],
+    activeCell: Selection.Cell | null,
 
-    moveActive(relCol: number, relRow: number): void,
-    columnType(col: number): string,
+    // Values will be sorted according to the first key in the list. If two identical values appear, the next key along is used until no keys left. In which case the row number is used. 
+    sortRows: string[],
 
-    insertCol(col: number): void,
-    insertRow(col: number): void,
-    removeCol(row: number): void,
-    removeRow(row: number): void,
+    // Each value in the list will be used to create a subgroup. 
+    groupRows: string[],
 
-    documentProperties: DocumentProperties,
-    updateDocumentProperties(update: (prev: DocumentProperties) => Partial<DocumentProperties>): void,
-
-    onExternalChange(watcher: () => void): () => void
+    // Each row which when passed to all formulas, returns `true` is displayed.
+    // filter: Formula[]
 }
 
-export function Ui(props: { sheet: StateHolder, settings: Settings }) {
-    const [, setResize] = React.useState<ResizeState>({
-        isResizing: false,
-    });
-    const [selection, setSelection] = React.useState({
-        selection: [{row: 0, col: 0}] as Selection.CellGroup[],
-        startCell: null as null | Selection.Cell | Selection.Vector,
-        notFinished: null as null | Selection.Cell | Selection.Vector
-    });
+export default class SpreadsheetView extends obs.TextFileView implements StateHolder {
+    doc: CSVDocument;
 
-    React.useEffect(() => {
-        props.sheet.state.dispatch("sync-selection", {selection: selection.selection});
-        props.sheet.state.dispatch("change-active", {activeCell: null});
-    }, [selection.selection]);
+    private root: rdom.Root | null = null;
 
-    const renameColumn = (col: number) => () => {
-        (new class extends obs.Modal {
-            constructor() {
-                super(props.sheet.app);
+    state: StateManager<EditorState>;
 
-                const frag = new DocumentFragment();
+    constructor(leaf: obs.WorkspaceLeaf, readonly plugin: SpreadsheetPlugin) {
+        super(leaf);
 
-                const container = frag.createDiv({cls: ["input-modal"]});
-                container.createEl("input", {cls: ["input", "setting", "fill"], attr: {type: "text"}}, input => {
-                    input.value = props.sheet.documentProperties.columnTitles[col];
+        this.doc = new CSVDocument();
 
-                    input.focus();
-                    input.select();
+        this.doc.raw[0].push(value("", this.doc));
 
-                    input
-                        .addEventListener("change", e => props.sheet.updateDocumentProperties(prev => ({
-                            columnTitles: prev.columnTitles.with(col, (e.target as HTMLInputElement).value)
-                        })));
+        this.state = new StateManager<EditorState>({
+            selection: [],
+            activeCell: null
+        });
+    }
 
-                    input.addEventListener("keydown", e => {
-                        if (e.key != 'Enter')
-                            return;
+    moveActive(relCol: number, relRow: number) {
+        const state = this.state.get();
 
-                        e.preventDefault();
-                        this.close();
-                    })
-                });
+        const active = {
+            row: Math.max(0, (state.activeCell?.row ?? 0) + relRow),
+            col: Math.max(0, (state.activeCell?.col ?? 0) + relCol)
+        };
 
-                container.createDiv({cls: ["buttons"]})
-                    .createEl("button", {
-                        cls: ["button"],
-                        text: "Rename"
-                    }, btn => btn.addEventListener("click", () => this.close()));
+        if (active.row >= 0 && !Array.isArray(this.doc.raw[active.row]))
+            this.doc.insertRow(active.row);
 
-                this.setContent(frag)
-                    .setTitle("Rename Column");
-            }
-        }).open();
-    };
+        this.state.dispatch('change-active', _ => ({activeCell: active}));
+        this.state.dispatch("sync-selection", _ => ({selection: [active]}))
+    }
 
-    // React.useEffect(() => props.sheet.state.dispatch("change-active", { activeCell: null }), [isRenamingColumn]);
+    getViewData(): string {
+        return this.doc.getRaw()
+    }
 
-    const documentProperties = React.useSyncExternalStore(props.sheet.onExternalChange.bind(props.sheet), () => props.sheet.documentProperties);
+    setViewData(data: string, clear: boolean): void {
+        this.doc.setRaw(data, clear);
+    }
 
-    const beginSelection = (start: Selection.Cell | Selection.Vector) => setSelection(prev => ({
-        ...prev,
-        startCell: start
-    }));
-    const alterSelection = (cell: Selection.Cell | Selection.Vector) => setSelection(prev => ({
-        ...prev,
-        notFinished: cell
-    }));
-    const endSelection = (cell: Selection.Cell | Selection.Vector, replace: boolean) => {
-        if (replace)
-            setSelection(prev => ({
-                ...prev,
-                selection: prev.startCell ? [Selection.rangeFromCell(prev.startCell, cell)].filter((i: Selection.CellGroup | null): i is Selection.CellGroup => !!i) : [],
-                notFinished: null,
-                startCell: null
-            }));
-        else
-            setSelection(prev => ({
-                ...prev,
-                selection: prev.startCell ? [...prev.selection, Selection.rangeFromCell(prev.startCell, cell)].filter((i: Selection.CellGroup | null): i is Selection.CellGroup => !!i) : prev.selection,
-                notFinished: null,
-                startCell: null
-            }));
-    };
+    public get documentProperties(): DocumentProperties {
+        return this.doc.documentProperties;
+    }
 
-    const container = React.createRef<HTMLDivElement>();
-    React.useEffect(() => container.current?.focus(), [container]);
+    public columnType(col: number): string {
+        return this.doc.columnType(col)
+    }
+
+    public updateDocumentProperties(update: (prev: DocumentProperties) => Partial<DocumentProperties>) {
+        this.doc.updateDocumentProperties(update);
+    }
+
+    onExternalChange(watcher: () => void): () => void {
+        return this.doc.onExternalChange(watcher);
+    }
+
+    insertCol(col: number) {
+        this.doc.insertCol(col);
+    }
+
+    insertRow(row: number) {
+        this.doc.insertRow(row);
+    }
+
+    removeCol(col: number) {
+        this.doc.removeCol(col)
+    }
+
+    removeRow(row: number) {
+        this.doc.removeRow(row)
+    }
+
+    getViewType(): string {
+        return SPREADSHEET_VIEW
+    }
+
+    getDisplayText(): string {
+        return this.file?.basename ?? "Untitled Spreadsheet";
+    }
+
+    getIcon(): string {
+        return "sheet";
+    }
+
+    onPaneMenu(menu: obs.Menu, source: string) {
+        menu.addItem(item => item
+            .setIcon("settings")
+            .setTitle("Spreadsheet Preferences"));
+    }
+
+    protected async onOpen(): Promise<void> {
+        (this.root = rdom.createRoot(this.contentEl))
+            .render(<Spreadsheet sheet={this} settings={this.plugin.settings}/>);
+    }
+
+    protected async onClose(): Promise<void> {
+        this.root?.unmount();
+    }
+
+    clear(): void {
+        this.doc.clear();
+    }
+}
+
+export function Spreadsheet(props: { sheet: StateHolder, settings: Settings }) {
+    const [{sheet}, setSheet] = React.useState({sheet: props.sheet});
+    props.sheet.doc.onExternalChange(() => setSheet({sheet: props.sheet}));
+
+    const [selection, setSelection] = React.useState(sheet.state.get().selection);
+
+    const [selectionState, setSelectionState] = React.useState<{
+        startCell: Selection.Cell | Selection.Vector,
+        currentCell: Selection.Cell | Selection.Vector,
+    } | null>(null);
+
+    props.sheet.state.on("selection-change", state => setSelection(state.selection));
+
+    function endSelection(e: React.MouseEvent) {
+        if (selectionState)
+            setSelection(e.shiftKey ? prev => [...prev, toGroup(selectionState)] : [toGroup(selectionState)]);
+
+        setSelectionState(null);
+    }
 
     return <section
-        className={"table-widget"}
-        tabIndex={-1}
-        ref={container}
-        onMouseMove={e => setResize(prev => {
-            if (!prev.isResizing)
-                return prev;
+        className={"table-widget"}>
 
-            const size = {
-                width: prev.prevSize.width + (e.clientX - prev.prevMouse.x),
-                height: prev.prevSize.height + (e.clientY - prev.prevMouse.y),
-            };
+        <Toolbar settings={props.settings} sheet={sheet}/>
 
-            prev.onResize(size);
-
-            return {
-                isResizing: true,
-                prevMouse: {
-                    x: e.clientX,
-                    y: e.clientY,
-                },
-                prevSize: size,
-                onResize: prev.onResize
-            };
-        })}
-        onMouseUp={() => {
-            setResize({isResizing: false});
-            setSelection(prev => ({...prev, startCell: null}));
-        }}
-        onKeyDownCapture={e => {
-            if (!props.sheet.state.get().activeCell)
-                if (!e.altKey && !e.ctrlKey && !e.metaKey && !e.shiftKey && e.key != "Tab" && e.key != "Enter")
-                    props.sheet.state.dispatch('change-active', prev => ({
-                        activeCell: Selection.topLeft(prev.selection)
-                    }));
-        }}>
-
-        <Toolbar settings={props.settings} sheet={props.sheet}/>
-        <TableOld spreadsheet={props.sheet}
-
-                  columnWidths={documentProperties.columnWidths}
-                  rowHeights={documentProperties.rowHeights}
-
-                  mouseUp={(row, col) => endSelection({row, col}, true)}
-                  mouseMove={(row, col) => alterSelection({row, col})}
-                  mouseDown={(row, col) => beginSelection({row, col})}>
-
-            <>
-                {documentProperties.columnTitles.map((column, col) =>
-                    <div className={"table-header-cell"}
-                         key={`table-header-${col}`}
-                         style={{
-                             gridColumn: col + 2,
-                             gridRow: 1
-                         }}
-                         onContextMenu={e => columnContextMenu(e, col, props.sheet, renameColumn(col))}
-                         onDoubleClick={e => renameColumn(col)()}
-                         onMouseDown={e => () => e.button == 0 && beginSelection({col})}
-                         onMouseMove={e => selection.startCell && Selection.isVector(selection.startCell) && e.button == 0 && alterSelection({col})}
-                         onMouseUp={e => () => e.button == 0 && endSelection({col}, true)}>
-
-                        <div className={"column-title"}>
-                            {column}
-                            {props.sheet.columnType(col) != 'raw' ?
-                                <div className={"nav-file-tag"}>
-                                    {props.sheet.columnType(col)}
-                                </div> : null}
-                        </div>
-                        <span className={"resize-handle"} onMouseDown={e => setResize({
-                            isResizing: true,
-                            prevMouse: {
-                                x: e.clientX,
-                                y: e.clientY
-                            },
-                            prevSize: {
-                                width: documentProperties.columnWidths[col] ?? DEFAULT_COLUMN_WIDTH,
-                                height: e.currentTarget.innerHeight
-                            },
-                            onResize: size => props.sheet.updateDocumentProperties(prev => ({
-                                columnWidths: prev.columnWidths.with(col, Math.max(size.width, MIN_COLUMN_WIDTH))
-                            }))
-                        })}/>
-                    </div>)}
-            </>
-            <>
-                {documentProperties.rowHeights.map((_, row) => <div
-                    key={`row-title-${row}`}
-                    className={"row"}
-                    style={{
-                        gridColumn: 1,
-                        gridRow: row + 2
-                    }}
-                    onMouseDown={e => () => beginSelection({row})}
-                    onMouseMove={e => selection.startCell && Selection.isVector(selection.startCell) && e.button == 0 && alterSelection({row})}
-                    onMouseUp={e => () => endSelection({row}, true)}
-                    onContextMenu={e => rowContextMenu(e, row, props.sheet)}>
-                    <div className={"row-title"}>{row + 1}</div>
-                    <span
-                        className={"resize-handle horizontal"}
-                        onMouseDown={e => setResize({
-                            isResizing: true,
-                            prevMouse: {
-                                x: e.clientX,
-                                y: e.clientY
-                            },
-                            prevSize: {
-                                height: documentProperties.rowHeights[row] ?? DEFAULT_ROW_HEIGHT,
-                                width: e.currentTarget.innerWidth
-                            },
-                            onResize: size => props.sheet.updateDocumentProperties(prev => ({
-                                rowHeights: prev.rowHeights.with(row, Math.max(size.height, MIN_ROW_HEIGHT))
-                            }))
-                        })}/>
-                </div>)}
-            </>
-
-            <SelectionIndicator selection={selection} sheet={props.sheet}/>
-
-        </TableOld>
+        <div className={"spreadsheet"}
+             onMouseUp={e => endSelection(e)}>
+            <Table
+                sheet={sheet}
+                renderColumn={col => <div className={"column-title"}
+                                          onDoubleClick={e => renameColumn(sheet, col)}
+                                          onContextMenu={e => columnContextMenu(e, col, sheet)}>{col.title}</div>}>
+                {mkTableCell(sheet, (cell, addr) => <div className={"table-cell-inner"}
+                                                         onMouseDown={e => setSelectionState({
+                                                             startCell: addr,
+                                                             currentCell: addr
+                                                         })}
+                                                         onMouseEnter={e => setSelectionState(prev => prev ? ({
+                                                             ...prev,
+                                                             currentCell: addr
+                                                         }) : null)}>
+                    <EditableTableCell cell={cell}/>
+                </div>, selectionState ? [...selection, toGroup(selectionState)] : selection)}
+            </Table>
+        </div>
     </section>;
 }
 
-export function SelectionIndicator({selection, sheet}: {
-    selection: {
-        selection: Selection.CellGroup[],
-        startCell: null | Selection.Cell | Selection.Vector,
-        notFinished: null | Selection.Cell | Selection.Vector
-    },
-    sheet: StateHolder
-}) {
-    return <>
-        {[...selection.selection, ...(selection.startCell && selection.notFinished ? [Selection.rangeFromCell(selection.startCell, selection.notFinished)] : [])]
-            .filter(i => !!i)
-            .map((selection, a) => {
-                if (Selection.isRange(selection))
-                    return <div className="selection-range"
-                                key={`selection-${a}`}
-                                style={{
-                                    gridRowStart: selection.from.row + 2,
-                                    gridRowEnd: selection.to.row + 3,
-                                    gridColumnStart: selection.from.col + 2,
-                                    gridColumnEnd: selection.to.col + 3,
-                                }}/>
+export function EditableTableCell(props: { cell: Value, edit?: boolean }) {
+    const [content, setContent] = React.useState(props.cell.getRaw());
+    const [edit, setEdit] = React.useState(props.edit ?? false);
 
-                else if (Selection.isRowVectorRange(selection))
-                    return <div className="selection-range row-vector"
-                                key={`selection-${a}`}
-                                style={{
-                                    gridColumnStart: 1,
-                                    gridColumnEnd: sheet.doc.raw[0].length + 2, // TODO: Figure out why CSS grid isn't accepting end values
-                                    gridRowStart: selection.from.row + 2,
-                                    gridRowEnd: selection.to.row + 3
-                                }}/>
+    const ref = React.createRef<HTMLInputElement>();
 
-                else if (Selection.isColumnVectorRange(selection))
-                    return <div className="selection-range column-vector"
-                                key={`selection-${a}`}
-                                style={{
-                                    gridRowStart: 1,
-                                    gridRowEnd: sheet.doc.raw.length + 2,
-                                    gridColumnStart: selection.from.col + 2,
-                                    gridColumnEnd: selection.to.col + 3
-                                }}/>
+    React.useEffect(() => {
+        if (edit) {
+            ref.current?.focus();
+            ref.current?.select();
+        }
+    }, [edit]);
 
-                else if (Selection.isCell(selection))
-                    return <div className="selection-range"
-                                key={`selection-${a}`}
-                                style={{
-                                    gridRow: selection.row + 2,
-                                    gridColumn: selection.col + 2
-                                }}/>
+    React.useEffect(() => props.cell.setRaw(content), [content]);
 
-                else if (Selection.isColumnVector(selection))
-                    return <div className="selection-range column-vector"
-                                key={`selection-${a}`}
-                                style={{
-                                    // gridRow: '1 / -1',
-                                    gridRowStart: 1,
-                                    gridRowEnd: sheet.doc.raw.length + 2,
-                                    gridColumn: selection.col + 2
-                                }}/>
-
-                else if (Selection.isRowVector(selection))
-                    return <div className="selection-range row-vector"
-                                key={`selection-${a}`}
-                                style={{
-                                    gridRow: selection.row + 2,
-                                    gridColumnStart: 1,
-                                    gridColumnEnd: sheet.doc.raw[0].length + 2
-                                    // gridColumn: '1 / -1',
-                                }}/>
-            })}
-    </>
+    return <div className={"table-cell-inner"}
+                onDoubleClick={_ => setEdit(true)}>{edit ? <>
+        <input ref={ref}
+               type={"text"}
+               value={content}
+               onChange={e => setContent(e.target.value)}
+               onBlur={() => setEdit(false)}/>
+    </> : <>
+        <span>
+            {computedValue(props.cell)}
+        </span>
+    </>}</div>
 }
 
-export function columnContextMenu(e: React.MouseEvent, col: number, sheet: StateHolder, editColumn: () => void) {
-    const menu = new obs.Menu();
+export function toGroup({startCell, currentCell}: {
+    startCell: Selection.Cell | Selection.Vector,
+    currentCell: Selection.Cell | Selection.Vector
+}): Selection.CellGroup {
+    if (Selection.isColumnVector(startCell))
+        return Selection.normaliseVectorRange({
+            from: startCell,
+            to: {col: 'col' in currentCell ? currentCell.col : 0}
+        })
+    else if (Selection.isRowVector(startCell))
+        return Selection.normaliseVectorRange({
+            from: startCell,
+            to: {row: 'row' in currentCell ? currentCell.row : 0}
+        })
 
-    menu.addItem(item => item
-        .setIcon("pencil")
-        .setTitle("Rename Column")
-        .onClick(_ => editColumn()));
-
-    menu.addItem(item => {
-        const submenu = (item
-            .setIcon("languages")
-            .setTitle("Set column format") as any as { setSubmenu: () => obs.Menu })
-            .setSubmenu();
-
-        // for (const [key, ren] of Object.entries(renderers))
-        //     submenu.addItem(item => item
-        //         .setIcon(ren.friendlyName.icon ?? null)
-        //         .setTitle(ren.friendlyName.label)
-        //         .onClick(_ => sheet.editFormat(col, key)));
+    else return Selection.normaliseRange({
+        from: startCell,
+        to: Selection.isCell(currentCell) ? currentCell : ( // Assume the user released the mouse on a column or row header.
+            Selection.isColumnVector(currentCell) ?
+                {col: currentCell.col, row: 0} :
+                {col: 0, row: currentCell.row}
+        )
     });
-
-    menu.addSeparator();
-
-    menu.addItem(item => item
-        .setIcon("arrow-left-to-line")
-        .setTitle("Swap column leftwards"));
-    menu.addItem(item => item
-        .setIcon("arrow-right-to-line")
-        .setTitle("Swap column rightwards"));
-
-    menu.addSeparator();
-
-    menu.addItem(item => item
-        .setIcon("list-plus")
-        .setTitle("Insert column before")
-        .onClick(_ => sheet.insertCol(col - 1)));
-    menu.addItem(item => item
-        .setIcon("list-plus")
-        .setTitle("Insert column after")
-        .onClick(_ => sheet.insertCol(col)));
-
-    menu.addSeparator();
-
-    menu.addItem(item => item
-        .setIcon("trash-2")
-        .setTitle("Delete Column")
-        .onClick(e => sheet.removeCol(col)));
-
-    menu.addSeparator();
-
-    menu.addItem(item => item
-        .setIcon("arrow-up-narrow-wide")
-        .setTitle(`Sort by ${sheet.documentProperties.columnTitles[col]}`)
-        .onClick(e => void 0));
-
-    menu.addItem(item => item
-        .setIcon("arrow-down-wide-narrow")
-        .setTitle(`Sort by ${sheet.documentProperties.columnTitles[col]} (Descending)`)
-        .onClick(e => void 0));
-
-    menu.addItem(item => item
-        .setIcon("filter")
-        .setTitle(`Filter on ${sheet.documentProperties.columnTitles[col]}`)
-        .onClick(e => void 0));
-
-    menu.addItem(item => item
-        .setIcon("group")
-        .setTitle(`Group by ${sheet.documentProperties.columnTitles[col]}`)
-        .onClick(e => void 0));
-
-    menu.showAtMouseEvent(e.nativeEvent);
-}
-
-export function rowContextMenu(e: React.MouseEvent, row: number, sheet: StateHolder) {
-    sheet.state.dispatch('change-active', {activeCell: null});
-
-    const menu = new obs.Menu();
-
-    menu.addItem(item => item
-        .setIcon("arrow-up-to-line")
-        .setTitle("Swap row upwards"));
-    menu.addItem(item => item
-        .setIcon("arrow-down-to-line")
-        .setTitle("Swap row downwards"));
-
-    menu.addSeparator();
-
-    menu.addItem(item => item
-        .setIcon("list-plus")
-        .setTitle("Insert row above")
-        .onClick(_ => sheet.insertRow(row - 1)));
-    menu.addItem(item => item
-        .setIcon("list-plus")
-        .setTitle("Insert row below")
-        .onClick(_ => sheet.insertRow(row)));
-
-    menu.addSeparator();
-
-    menu.addItem(item => item
-        .setIcon("trash-2")
-        .setTitle("Delete Row")
-        .onClick(e => sheet.removeRow(row)));
-
-    menu.showAtMouseEvent(e.nativeEvent);
 }

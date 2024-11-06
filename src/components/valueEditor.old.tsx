@@ -1,7 +1,7 @@
 import React from 'react';
 
 import {Value} from "../csv.js";
-import {StateHolder} from "../spreadsheet.js";
+import {StateHolder} from "../main.js";
 
 export function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>, spreadsheet: StateHolder) {
     if (e.key == "Enter" || e.key == "Tab")

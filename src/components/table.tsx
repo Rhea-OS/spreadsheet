@@ -1,13 +1,22 @@
 import React from 'react';
 import useResizeObserver from '@react-hook/resize-observer';
 
-import {StateHolder} from "../spreadsheet.js";
-import {DEFAULT_COLUMN_WIDTH, DEFAULT_ROW_HEIGHT} from "./table.old.js";
+import {DocumentProperties, Value} from "../csv.js";
+import {StateHolder} from "../main.js";
+import SelectionIndicator, {Selection} from "../selection.js";
+
+
+export const DEFAULT_COLUMN_WIDTH = 128;
+export const MIN_COLUMN_WIDTH = 24;
+
+export const DEFAULT_ROW_HEIGHT = 28;
+export const MIN_ROW_HEIGHT = 6;
 
 // export type ColumnHeader = () => React.ReactNode;
 export interface ColumnHeader {
     title: string,
     width: number,
+    index: number,
 
     render: (col: ColumnHeader) => React.ReactNode
 }
@@ -19,21 +28,28 @@ interface TableRow {
 }
 
 export interface TableProps<Row extends TableRow> {
-    children: { data: Row[] },
+    children: {
+        data: Row[],
+        selection?: Selection.CellGroup[]
+    },
     sheet: StateHolder,
 
-    columns: Record<string, ColumnHeader>
+    renderColumn: (col: ColumnHeader) => React.ReactNode,
 }
 
 export default function Table<Row extends TableRow>(props: TableProps<Row>) {
-    const [columns, setColumns] = React.useState<ColumnHeader[]>(Object.values(props.columns));
+    const [columns, setColumns] = React.useState<ColumnHeader[]>([]);
+
+    React.useEffect(() => setColumns(props.sheet.documentProperties.columnTitles.map((col, colIndex) => ({
+        title: col,
+        width: columns?.[colIndex]?.width ?? DEFAULT_COLUMN_WIDTH,
+        render: props.renderColumn,
+        index: colIndex
+    }))), [props]);
 
     const ref = React.useRef<HTMLDivElement | null>(null);
 
-    const resizeColumn = (colIndex: number, width: number) => setColumns(prev => prev.with(colIndex, {
-        ...prev[colIndex],
-        width
-    }));
+    const resizeColumn = (colIndex: number, width: number) => setColumns(prev => prev.with(colIndex, { ...prev[colIndex], width }));
 
     return <section
         className={"table-widget"}
@@ -72,9 +88,11 @@ export default function Table<Row extends TableRow>(props: TableProps<Row>) {
                         gridRow: rowIndex + 2,
                         gridColumn: colIndex + 2
                     }}>
-                    {row.data[col.title]()}
+                    {row.data[col.title]?.() ?? ""}
                 </div>)}
             </>)}
+
+            {props.children.selection ? <SelectionIndicator selection={props.children.selection} sheet={props.sheet} /> : null}
 
         </section>
     </section>;
@@ -87,6 +105,8 @@ export function TableHeaderCell(props: {
 }) {
     const ref = React.useRef<HTMLDivElement>(null);
 
+    // This thing apparently isn't a function... Actually it is
+    // @ts-ignore
     useResizeObserver(ref, e => props.onResize(e.contentRect));
 
     return <div
@@ -102,4 +122,26 @@ export function TableHeaderCell(props: {
         {props.header.render(props.header)}
 
     </div>
+}
+
+export function columnHeadersFromDocument(document: StateHolder, render: (col: ColumnHeader) => React.ReactNode): Record<string, ColumnHeader> {
+    return Object.fromEntries(document.documentProperties.columnTitles.map((col, colIndex) => [col, {
+        title: col,
+        width: document.documentProperties.columnWidths[colIndex],
+        index: colIndex,
+        render
+    }]))
+}
+
+export function mkTableCell<Row extends TableRow>(document: StateHolder, child: (col: Value, addr: Selection.Cell) => React.ReactNode, selection?: Selection.CellGroup[]): TableProps<Row>["children"] {
+    return {
+        data: document.doc.raw.map((row, rowIndex) => ({
+            id: rowIndex,
+            data: Object.fromEntries(row.map((col, colIndex) => [
+                document.documentProperties.columnTitles[colIndex],
+                () => child(col, { col: colIndex, row: rowIndex })
+            ]))
+        })) as Row[],
+        selection
+    }
 }

@@ -1,16 +1,18 @@
 import * as path from 'node:path';
 import * as obs from 'obsidian';
 
-import Spreadsheet, {SPREADSHEET_VIEW} from "./viewport.js";
+import SpreadsheetView, {EditorState, SPREADSHEET_VIEW} from "./spreadsheet.js";
 import SettingsTab, { default_settings, Settings } from "./settings/settingsTab.js";
 import inline from "./inline.js";
+import CSVDocument, {DocumentProperties} from "./csv.js";
+import StateManager from "@j-cake/jcake-utils/state";
 
 export default class SpreadsheetPlugin extends obs.Plugin {
     settingsTab: SettingsTab | null = null;
     settings: Settings = default_settings;
 
     async onload() {
-        this.registerView(SPREADSHEET_VIEW, leaf => new Spreadsheet(leaf, this));
+        this.registerView(SPREADSHEET_VIEW, leaf => new SpreadsheetView(leaf, this));
         this.registerExtensions(["csv", "tab"], SPREADSHEET_VIEW);
 
         this.addSettingTab(this.settingsTab = new SettingsTab(this.app, this));
@@ -40,4 +42,22 @@ export default class SpreadsheetPlugin extends obs.Plugin {
             }
         }).commands.executeCommandById(command);
     }
+}
+
+export interface StateHolder {
+    doc: CSVDocument,
+    state: StateManager<EditorState>,
+    app: obs.App,
+
+    moveActive(relCol: number, relRow: number): void,
+    columnType(col: number): string,
+    insertCol(col: number): void,
+    insertRow(col: number): void,
+    removeCol(row: number): void,
+    removeRow(row: number): void,
+
+    documentProperties: DocumentProperties,
+
+    updateDocumentProperties(update: (prev: DocumentProperties) => Partial<DocumentProperties>): void,
+    onExternalChange(watcher: () => void): () => void
 }

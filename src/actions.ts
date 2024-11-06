@@ -1,4 +1,4 @@
-import Spreadsheet from "./viewport.js";
+import SpreadsheetView from "./spreadsheet.js";
 import { icons } from 'lucide-react';
 
 export type Tool = {
@@ -8,7 +8,7 @@ export type Tool = {
 } & (Button | ViewportOptions);
 export type Button = {
     type: 'button',
-    onClick: (sheet: Spreadsheet) => void,
+    onClick: (sheet: SpreadsheetView) => void,
 };
 export type ViewportOptions = {
     type: 'viewport',
