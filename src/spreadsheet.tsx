@@ -167,6 +167,14 @@ export function Spreadsheet(props: { sheet: StateHolder, settings: Settings }) {
                 sheet={sheet}
                 renderColumn={col => <div className={"column-title"}
                                           onDoubleClick={e => renameColumn(sheet, col)}
+                                          onMouseDown={() => setSelectionState({
+                                              startCell: { col: col.index },
+                                              currentCell: { col: col.index }
+                                          })}
+                                          onMouseEnter={e => setSelectionState(prev => prev ? ({
+                                              ...prev,
+                                              currentCell: { col: col.index }
+                                          }) : null)}
                                           onContextMenu={e => columnContextMenu(e, col, sheet)}>{col.title}</div>}>
                 {mkTableCell(sheet, (cell, addr) => <div className={"table-cell-inner"}
                                                          onMouseDown={e => setSelectionState({
