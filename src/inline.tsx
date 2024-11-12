@@ -46,7 +46,8 @@ export function ReadonlyUi(props: {
 
     return <Table
         sheet={props.sheet}
-        renderColumn={col => <span className={"column-title"}>{col.title}</span>}>
+        renderColumn={col => <span className={"column-title"}>{col.title}</span>}
+        renderRow={row => <span className={"row-title"}>{row}</span>}>
         {mkTableCell(props.sheet, col => <div className={"table-cell-inner"}>
             <span>
                 {computedValue(col)}

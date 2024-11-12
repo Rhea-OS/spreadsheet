@@ -35,6 +35,7 @@ export interface TableProps<Row extends TableRow> {
     sheet: StateHolder,
 
     renderColumn: (col: ColumnHeader) => React.ReactNode,
+    renderRow: (row: number) => React.ReactNode
 }
 
 export default function Table<Row extends TableRow>(props: TableProps<Row>) {
@@ -78,7 +79,7 @@ export default function Table<Row extends TableRow>(props: TableProps<Row>) {
                         gridColumn: 1,
                         gridRow: rowIndex + 2
                     }}>
-                    <div className={"row-title"}>{row.id}</div>
+                    {props.renderRow(rowIndex)}
                 </div>
 
                 {columns.map((col, colIndex) => <div

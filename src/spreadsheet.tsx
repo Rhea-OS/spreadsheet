@@ -10,7 +10,7 @@ import Toolbar from "./components/toolbar.js";
 import Table, {mkTableCell} from "./components/table.js";
 import {computedValue} from "./inline.js";
 import {Selection} from "./selection.js";
-import {columnContextMenu} from "./contextMenu.js";
+import {columnContextMenu, rowContextMenu} from "./contextMenu.js";
 import {renameColumn} from "./renameColumn.js";
 
 export const SPREADSHEET_VIEW = "spreadsheet-view";
@@ -141,13 +141,17 @@ export function Spreadsheet(props: { sheet: StateHolder, settings: Settings }) {
     props.sheet.doc.onExternalChange(() => setSheet({sheet: props.sheet}));
 
     const [selection, setSelection] = React.useState(sheet.state.get().selection);
+    const [active, setActive] = React.useState(sheet.state.get().activeCell);
 
     const [selectionState, setSelectionState] = React.useState<{
         startCell: Selection.Cell | Selection.Vector,
         currentCell: Selection.Cell | Selection.Vector,
     } | null>(null);
 
-    props.sheet.state.on("selection-change", state => setSelection(state.selection));
+    props.sheet.state.on("selection-change", state => {
+        setSelection(state.selection);
+        setActive(state.activeCell);
+    });
 
     function endSelection(e: React.MouseEvent) {
         if (selectionState)
@@ -156,26 +160,65 @@ export function Spreadsheet(props: { sheet: StateHolder, settings: Settings }) {
         setSelectionState(null);
     }
 
+    function onKeyUp(e: React.KeyboardEvent) {
+        const prev = props.sheet.state.get();
+
+        const dir: Record<string, (prev: Selection.Cell) => Selection.Cell> = {
+            up: prev => ({
+                col: prev.col,
+                row: Math.max(0, prev.row - 1)
+            }),
+            down: prev => ({
+                col: prev.col,
+                row: prev.row + 1
+            }),
+            left: prev => ({
+                col: Math.max(0, prev.col - 1),
+                row: prev.row
+            }),
+            right: prev => ({
+                col: prev.col + 1,
+                row: prev.row
+            })
+        };
+
+        const key = e.key == "Enter" ? (e.shiftKey ? 'up' : 'down') : e.key == "Tab" ? (e.shiftKey ? 'left' : 'right') : '';
+        const cell = key && prev.activeCell && dir[key](prev.activeCell);
+
+        if (key)
+            new obs.Notice(key);
+
+        if (cell && Selection.isCell(cell)) {
+            props.sheet.state.dispatch("selection-change", {
+                selection: [cell],
+                activeCell: null
+            });
+        }
+    }
+
     return <section
         className={"table-widget"}>
 
         <Toolbar settings={props.settings} sheet={sheet}/>
 
         <div className={"spreadsheet"}
-             onMouseUp={e => endSelection(e)}>
+             onMouseUp={e => endSelection(e)}
+             onKeyUp={e => onKeyUp(e)}>
             <Table
                 sheet={sheet}
                 renderColumn={col => <div className={"column-title"}
                                           onDoubleClick={e => renameColumn(sheet, col)}
                                           onMouseDown={() => setSelectionState({
-                                              startCell: { col: col.index },
-                                              currentCell: { col: col.index }
+                                              startCell: {col: col.index},
+                                              currentCell: {col: col.index}
                                           })}
                                           onMouseEnter={e => setSelectionState(prev => prev ? ({
                                               ...prev,
-                                              currentCell: { col: col.index }
+                                              currentCell: {col: col.index}
                                           }) : null)}
-                                          onContextMenu={e => columnContextMenu(e, col, sheet)}>{col.title}</div>}>
+                                          onContextMenu={e => columnContextMenu(e, col, sheet)}>{col.title}</div>}
+                renderRow={row => <div className={"row-title"}
+                                       onContextMenu={e => rowContextMenu(e, row, sheet)}>{row}</div>}>
                 {mkTableCell(sheet, (cell, addr) => <div className={"table-cell-inner"}
                                                          onMouseDown={e => setSelectionState({
                                                              startCell: addr,
@@ -185,35 +228,44 @@ export function Spreadsheet(props: { sheet: StateHolder, settings: Settings }) {
                                                              ...prev,
                                                              currentCell: addr
                                                          }) : null)}>
-                    <EditableTableCell cell={cell}/>
+                    <EditableTableCell cell={cell} sheet={props.sheet} addr={addr}
+                                       edit={active ? Selection.eqCell(addr, active) : false}/>
                 </div>, selectionState ? [...selection, toGroup(selectionState)] : selection)}
             </Table>
         </div>
     </section>;
 }
 
-export function EditableTableCell(props: { cell: Value, edit?: boolean }) {
+export function EditableTableCell(props: { cell: Value, edit?: boolean, sheet: StateHolder, addr: Selection.Cell }) {
     const [content, setContent] = React.useState(props.cell.getRaw());
-    const [edit, setEdit] = React.useState(props.edit ?? false);
 
     const ref = React.createRef<HTMLInputElement>();
 
     React.useEffect(() => {
-        if (edit) {
+        if (props.edit) {
             ref.current?.focus();
             ref.current?.select();
+
+            props.sheet.state.dispatch("selection-change", {
+                activeCell: props.addr
+            });
         }
-    }, [edit]);
+    }, [props.edit]);
 
     React.useEffect(() => props.cell.setRaw(content), [content]);
 
     return <div className={"table-cell-inner"}
-                onDoubleClick={_ => setEdit(true)}>{edit ? <>
+                onDoubleClick={_ => props.sheet.state.dispatch("selection-change", {
+                    selection: [props.addr],
+                    activeCell: props.addr
+                })}>{props.edit ? <>
         <input ref={ref}
                type={"text"}
                value={content}
                onChange={e => setContent(e.target.value)}
-               onBlur={() => setEdit(false)}/>
+               onBlur={() => props.sheet.state.dispatch("selection-change", {
+                   activeCell: null
+               })}/>
     </> : <>
         <span>
             {computedValue(props.cell)}
@@ -237,11 +289,11 @@ export function toGroup({startCell, currentCell}: {
         })
 
     else return Selection.normaliseRange({
-        from: startCell,
-        to: Selection.isCell(currentCell) ? currentCell : ( // Assume the user released the mouse on a column or row header.
-            Selection.isColumnVector(currentCell) ?
-                {col: currentCell.col, row: 0} :
-                {col: 0, row: currentCell.row}
-        )
-    });
+            from: startCell,
+            to: Selection.isCell(currentCell) ? currentCell : ( // Assume the user released the mouse on a column or row header.
+                Selection.isColumnVector(currentCell) ?
+                    {col: currentCell.col, row: 0} :
+                    {col: 0, row: currentCell.row}
+            )
+        });
 }
