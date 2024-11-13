@@ -28,12 +28,14 @@
         "typescript": "latest"
     },
     "imports": {
-        "#app": "./build/index.js"
+        "#app": "./build/index.js",
+        "#unit": "./build/unit.js"
     },
     "deploy": {
         "main": "run.js",
         "imports": {
-            "#app": "./index.js"
+            "#app": "./index.js",
+            "#unit": "./unit.js"
         },
         "scripts": null
     }

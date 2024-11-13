@@ -25,6 +25,16 @@ export default {
             outdir: config.out.path
         });
     },
+    async "build:unit"(config) {
+        await esbuild.build({
+            entryPoints: ["unitConverter/unit.ts"],
+            bundle: true,
+            sourcemap: true,
+            platform: 'node',
+            format: 'esm',
+            outdir: config.out.path
+        });
+    },
     async "build:package.json"(config) {
         if (!await util.has_changed({
             glob: path => is_source(path),

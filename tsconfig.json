@@ -16,7 +16,8 @@
         "importHelpers": true,
         "strict": true,
         "paths": {
-            "#expr": ["../build/expression.wasm"]
+            "#expr": ["../build/expression.wasm"],
+            "#unit": ["./unitConverter/unit.ts"]
         }
     },
     "exclude": [

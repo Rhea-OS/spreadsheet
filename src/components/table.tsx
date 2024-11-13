@@ -60,7 +60,7 @@ export default function Table<Row extends TableRow>(props: TableProps<Row>) {
         <section
             className={"table-container"}
             style={{
-                gridAutoColumns: `min-content ${columns.map(i => `${i.width ?? DEFAULT_COLUMN_WIDTH}px`).join(' ')} min-content`,
+                gridAutoColumns: `min-content ${columns.slice(0, -1).map(i => `${i.width ?? DEFAULT_COLUMN_WIDTH}px`).join(' ')} 1fr min-content`,
                 gridAutoRows: `min-content`, //  ${props.rowHeights.map(i => `${i ?? DEFAULT_ROW_HEIGHT}px`).join(' ')}
             }}>
 
@@ -74,7 +74,7 @@ export default function Table<Row extends TableRow>(props: TableProps<Row>) {
 
             {props.children.data.map((row, rowIndex) => <>
                 <div
-                    className={"row"}
+                    className={["row", rowIndex % 2 == 0 ? '' : 'odd'].join(' ')}
                     style={{
                         gridColumn: 1,
                         gridRow: rowIndex + 2
@@ -83,7 +83,7 @@ export default function Table<Row extends TableRow>(props: TableProps<Row>) {
                 </div>
 
                 {columns.map((col, colIndex) => <div
-                    className={"table-cell"}
+                    className={["table-cell", rowIndex % 2 == 0 ? '' : 'odd'].join(' ')}
                     key={`table-cell-${colIndex}:${rowIndex}`}
                     style={{
                         gridRow: rowIndex + 2,
@@ -110,19 +110,18 @@ export function TableHeaderCell(props: {
     // @ts-ignore
     useResizeObserver(ref, e => props.onResize(e.contentRect));
 
-    return <div
+    return <header
         className={"table-header-cell"}
         key={`table-header-${props.colIndex}`}
         style={{
             gridColumn: props.colIndex + 2,
             gridRow: 1,
-            resize: "horizontal"
         }}
         ref={ref}>
 
         {props.header.render(props.header)}
 
-    </div>
+    </header>
 }
 
 export function columnHeadersFromDocument(document: StateHolder, render: (col: ColumnHeader) => React.ReactNode): Record<string, ColumnHeader> {

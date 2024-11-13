@@ -63,7 +63,7 @@
     },
     {
         "name": "Radians",
-        "matcher": "{}°",
+        "matcher": "{}rad",
         "metric": false,
         "equivalence": [
             "57.2958°"

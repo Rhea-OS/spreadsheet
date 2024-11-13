@@ -2,7 +2,7 @@ import * as React from 'react';
 import * as rdom from 'react-dom/client';
 import * as obs from 'obsidian';
 
-import units, {Unit} from "../units.js";
+import units, {Unit} from "../../unitConverter/units.js";
 import SpreadsheetPlugin from "../main.js";
 import Tools from '../actions.js';
 import ToolbarSettings from "./toolbar.js";
@@ -21,6 +21,9 @@ export const default_settings: Settings = {
         name: 'Date',
         // This pattern will incorrectly pass things like the 14th month.
         format: '(\\d{4}-[01]\\d-[0-3]\\dT[0-2]\\d:[0-5]\\d:[0-5]\\d\\.\\d+)|(\\d{4}-[01]\\d-[0-3]\\dT[0-2]\\d:[0-5]\\d:[0-5]\\d)|(\\d{4}-[01]\\d-[0-3]\\dT[0-2]\\d:[0-5]\\d)'
+    }, {
+        name: "IPv4 Address",
+        format: ''
     }]
 };
 

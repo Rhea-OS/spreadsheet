@@ -1,0 +1,24 @@
+.table-widget, tbody {
+    position: relative;
+    font-family: var(--font-text);
+    line-height: var(--line-height-normal);
+
+    overflow: visible;
+}
+
+/* Border */
+.table-container {
+    border-top: var(--table-border-width) solid var(--table-border-color);
+    border-left: var(--table-border-width) solid var(--table-border-color);
+
+    overflow: visible;
+}
+
+.table-cell, .table-header-cell, .row, .top-left-corner {
+    border-bottom: var(--table-border-width) solid var(--table-border-color);
+    border-right: var(--table-border-width) solid var(--table-border-color);
+}
+
+.table-header-cell:not(:last-of-type) {
+    resize: horizontal;
+}

@@ -1,6 +1,7 @@
 @import url("./layout.css");
 @import url("./listbox.css");
 @import url("./settings.css");
+@import url("./table.css");
 
 .toolbar {
     /*border: var(--input-border-width) solid var(--background-modifier-border);*/
@@ -26,42 +27,35 @@
     border-radius: var(--input-radius);
 
 
-    font-size: var(--font-smallest);
+    /*font-size: var(--font-smallest);*/
     text-overflow: ellipsis;
     white-space: nowrap;
-    overflow: hidden;
+    overflow: visible;
 }
 
-/*textarea {*/
-/*    padding-inline-start: var(--size-4-6);*/
-/*    padding: var(--size-4-1) var(--size-4-2);*/
-
-/*    resize: none;*/
-/*    width: 100%;*/
-/*    height: 100%;*/
-
-/*    background: var(--code-background);*/
-/*    white-space: var(--code-white-space);*/
-/*}*/
-
-
 .table-header-cell, .table-cell {
-    font-size: var(--font-smallest);
-
-    border-bottom: var(--table-border-width) solid var(--table-border-color);
-    border-right: var(--table-border-width) solid var(--table-border-color);
+    /*font-size: var(--font-smallest);*/
 }
 
 .table-cell-inner {
     z-index: 3;
     flex: 1;
 
-    font-size: var(--font-small);
+    /*font-size: var(--font-small);*/
 
     display: flex;
 
     align-items: stretch;
     justify-content: stretch;
+}
+
+.table-header-cell, .top-left-corner {
+    font-weight: bold;
+    background: var(--table-header-background);
+    /*padding: var(--size-2-2) var(--size-4-2);*/
+}
+
+.top-left-corner {
 }
 
 .table-cell {
@@ -78,8 +72,11 @@
 
 .table-cell-inner span {
     display: block;
-    padding-inline-start: var(--size-4-6);
-    padding: var(--size-4-1) var(--size-4-2);
+
+    padding: var(--size-2-2) var(--size-4-2);
+
+    /*padding-inline-start: var(--size-4-6);*/
+    /*padding: var(--size-4-1) var(--size-4-2);*/
     font-size: inherit;
 }
 
@@ -92,7 +89,6 @@
     border: none !important;
     font-size: inherit !important;
     font-family: var(--font-monospace-theme), monospace;
-    resize: none;
 }
 
 .column-title {
@@ -128,6 +124,7 @@ input[type="text"].column-title-rename {
 
     font-weight: var(--table-header-weight);
 
+
     max-height: calc(100% - 4px);
 }
 
@@ -138,13 +135,10 @@ input[type="text"].column-title-rename {
 .top-left-corner {
     grid-row: 1;
     grid-column: 1;
-
-    border-bottom: var(--table-border-width) solid var(--table-border-color);
-    border-right: var(--table-border-width) solid var(--table-border-color);
 }
 
 .row {
-    font-size: var(--font-smallest);
+    /*font-size: var(--font-smallest);*/
     color: var(--text-muted);
     display: flex;
     flex-direction: column;
@@ -155,21 +149,10 @@ input[type="text"].column-title-rename {
     overflow: hidden;
     white-space: nowrap;
 
-    border-bottom: var(--table-border-width) solid var(--table-border-color);
-    border-right: var(--table-border-width) solid var(--table-border-color);
 }
 
-.table-widget, tbody {
-    position: relative;
-}
-
-.resize-handle {
-    display: block;
-    width: 4px;
-    min-width: 4px;
-    cursor: col-resize;
-    background-color: transparent;
-    transition: background-color 200ms ease-in-out;
+.row.odd, .table-cell.odd {
+    background-color: var(--table-row-alt-background);
 }
 
 .table-cell .dropdown {
@@ -193,17 +176,6 @@ input[type="text"].column-title-rename {
 .table-cell .raw {
     font: var(--font-small) monospace;
     padding: 0 var(--size-4-2);
-}
-
-.resize-handle.horizontal {
-    height: 4px;
-    min-height: 4px;
-    min-width: 100%;
-    cursor: row-resize;
-}
-
-.resize-handle:hover {
-    background: var(--divider-color-hover);
 }
 
 .selection-range {
