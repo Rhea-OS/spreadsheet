@@ -1,28 +1,52 @@
 import units, {multipliers, Qty, Unit} from "./units.js";
+import equivalence, {EquivalenceMap} from "./equivalence.js";
 
-export { Unit } from './units.js';
-export { default as units } from './units.js';
+export {default as units} from './units.js';
 
-export interface Value {
-    source: string,
-    unit: Unit,
-    multiplier: number,
+export interface Value<U extends Unit = Unit> {
+    unit: U,
+    value: number,
 
-    number: number
+    intoUnit<IntoUnit extends Unit>(unit: IntoUnit): Value<IntoUnit>;
 }
 
-export const noUnit = (num: number): Value => ({
-    source: String(num),
-    multiplier: 1,
-    unit: Qty,
-    number: num
-});
+function valueFactory(parser: UnitParser, equivalenceMap: EquivalenceMap): <U extends Unit>(value: number, unit: U) => Value<U> {
+    let factory: <U extends Unit>(value: number, unit: U) => Value<U>;
+    return factory = (value, unit) => ({
+        value, unit,
+
+        intoUnit<IntoUnit extends Unit>(into: IntoUnit): Value<IntoUnit> {
+            const mul = equivalenceMap.getEquivalence(unit, into);
+
+            return factory(value * mul, into);
+        }
+    });
+}
+
+export const noUnit = (value: number): Value<typeof Qty> => ({
+    value, unit: Qty,
+
+    intoUnit<IntoUnit extends Unit>(unit: IntoUnit) {
+        throw new NotEquivalentError(Qty, unit);
+    }
+})
+
+export class NotEquivalentError extends Error {
+    constructor(public from: Unit, public to: Unit) {
+        super();
+
+        this.name = `NotEquivalent(${from.name} := ${to.name})`;
+    }
+}
 
 export default class UnitParser {
     private parsers: Record<string, (value: string) => { value: number, multiplier: number } | null>;
+    private readonly valueFactory: ReturnType<typeof valueFactory>;
+    private equivalenceMap: EquivalenceMap;
 
     constructor(private unitDatabase: Unit[]) {
         this.parsers = Object.fromEntries(unitDatabase.map(i => this.parseUnit(i)));
+        this.valueFactory = valueFactory(this, this.equivalenceMap = equivalence(this, unitDatabase));
     }
 
     public parseValue(value: string): Value {
@@ -33,12 +57,11 @@ export default class UnitParser {
         if (!candidate)
             return noUnit(Number(value));
 
-        return {
-            multiplier: candidate.multiplier,
-            source: value,
-            unit: this.unitDatabase.find(i => i.name == unit) ?? Qty,
-            number: candidate.value * candidate.multiplier
-        }
+        return this.valueFactory(candidate.value * candidate.multiplier, this.unitDatabase.find(i => i.name == unit) ?? Qty);
+    }
+
+    public findUnit(name: string): Unit {
+        return this.unitDatabase.find(i => i.name.toLowerCase() == name.toLowerCase()) ?? Qty;
     }
 
     private parseUnit(unit: Unit): [string, (value: string) => { value: number, multiplier: number } | null] {

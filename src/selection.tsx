@@ -1,4 +1,5 @@
 import React from "react";
+import * as iter from '@j-cake/jcake-utils/iter';
 
 import {StateHolder} from "./main.js";
 
@@ -108,6 +109,17 @@ export namespace Selection {
                 else
                     return -1;
             })[0];
+    }
+
+    export function* iterCells(selection: CellGroup[]): Generator<Cell> {
+        for (const group of selection)
+            if (Selection.isCell(group))
+                yield group;
+            else if (Selection.isRange(group))
+                for (const row of iter.iterSync.range(group.from.row, group.to.row + 1))
+                    for (const col of iter.iterSync.range(group.from.col, group.to.col + 1))
+                        yield { row, col };
+            // TODO: vectors
     }
 }
 

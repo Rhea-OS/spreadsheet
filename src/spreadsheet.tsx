@@ -2,6 +2,7 @@ import React from 'react';
 import * as rdom from "react-dom/client";
 import * as obs from "obsidian";
 import StateManager from '@j-cake/jcake-utils/state';
+import useEvent from '@react-hook/event';
 
 import SpreadsheetPlugin, {StateHolder} from "./main.js";
 import CSVDocument, {DocumentProperties, value, Value} from "./csv.js";
@@ -12,6 +13,7 @@ import {computedValue} from "./inline.js";
 import {Selection} from "./selection.js";
 import {columnContextMenu, rowContextMenu} from "./contextMenu.js";
 import {renameColumn} from "./renameColumn.js";
+import * as iter from "@j-cake/jcake-utils/iter";
 
 export const SPREADSHEET_VIEW = "spreadsheet-view";
 
@@ -155,6 +157,8 @@ export function Spreadsheet(props: { sheet: StateHolder, settings: Settings }) {
         setActive(state.activeCell);
     });
 
+    const table = React.useRef<HTMLDivElement>(null);
+
     function endSelection(e: React.MouseEvent) {
         if (selectionState)
             setSelection(e.shiftKey ? prev => [...prev, toGroup(selectionState)] : [toGroup(selectionState)]);
@@ -162,8 +166,8 @@ export function Spreadsheet(props: { sheet: StateHolder, settings: Settings }) {
         setSelectionState(null);
     }
 
-    function onKeyUp(e: React.KeyboardEvent) {
-        const prev = props.sheet.state.get();
+    function onKeyDown(e: KeyboardEvent) {
+        // const prev = props.sheet.state.get();
 
         const dir: Record<string, (prev: Selection.Cell) => Selection.Cell> = {
             up: prev => ({
@@ -184,19 +188,59 @@ export function Spreadsheet(props: { sheet: StateHolder, settings: Settings }) {
             })
         };
 
-        const key = e.key == "Enter" ? (e.shiftKey ? 'up' : 'down') : e.key == "Tab" ? (e.shiftKey ? 'left' : 'right') : '';
-        const cell = key && prev.activeCell && dir[key](prev.activeCell);
+        const key = ({
+            "Enter": e.shiftKey ? 'up' : 'down',
+            "Tab": e.shiftKey ? 'left' : 'right',
+            "ArrowLeft": 'left',
+            "ArrowRight": 'right',
+            "ArrowUp": 'up',
+            "ArrowDown": 'down',
+        })[e.key] ?? '';
 
-        if (key)
-            new obs.Notice(key);
+        console.log(e.key);
+
+        const current = active ?? Selection.topLeft(selection);
+        const cell = key && current && dir[key](current);
 
         if (cell && Selection.isCell(cell)) {
+            e.preventDefault();
             props.sheet.state.dispatch("selection-change", {
                 selection: [cell],
-                activeCell: null
+                activeCell: cell
             });
+            return false;
+        } else {
+            const cb = ({
+                "Delete": () => {
+                    for (const cell of Selection.iterCells(selection))
+                        props.sheet.doc.getValueAt(cell).setRaw("");
+                },
+                "Escape": () => {
+                    props.sheet.state.dispatch("selection-change", {
+                        activeCell: null
+                    })
+                }
+            } as Record<string, () => void>)[e.key];
+
+            if (cb)
+                cb()
+            else if (!e.ctrlKey && !e.shiftKey && !e.altKey && !e.metaKey)
+                props.sheet.state.dispatch("selection-change", {
+                    activeCell: current
+                });
         }
     }
+
+    // @ts-ignore
+    useEvent(document.body, 'keydown', (e: KeyboardEvent) => {
+        if (table.current?.isActiveElement() || table.current?.matches(":focus, :focus-within"))
+            return onKeyDown(e);
+    });
+
+    React.useEffect(() => {
+        if (!table.current?.matches(":focus, :focus-within"))
+            table.current?.focus()
+    });
 
     return <section
         className={"table-widget"}>
@@ -204,8 +248,9 @@ export function Spreadsheet(props: { sheet: StateHolder, settings: Settings }) {
         <Toolbar settings={props.settings} sheet={sheet}/>
 
         <div className={"spreadsheet"}
-             onMouseUp={e => endSelection(e)}
-             onKeyUp={e => onKeyUp(e)}>
+             ref={table}
+             tabIndex={-1}
+             onMouseUp={e => endSelection(e)}>
             <Table
                 sheet={sheet}
                 renderColumn={col => <div className={"column-title"}
@@ -240,6 +285,8 @@ export function Spreadsheet(props: { sheet: StateHolder, settings: Settings }) {
 
 export function EditableTableCell(props: { cell: Value, edit?: boolean, sheet: StateHolder, addr: Selection.Cell }) {
     const [content, setContent] = React.useState(props.cell.getRaw());
+
+    props.cell.onChange(content => setContent(content));
 
     const ref = React.createRef<HTMLInputElement>();
 

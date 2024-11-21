@@ -25,7 +25,7 @@
     },
     {
         "name": "Volt",
-        "matcher": "{}R",
+        "matcher": "{}V",
         "metric": true,
         "equivalence": []
     },
@@ -52,12 +52,6 @@
     {
         "name": "Ohm",
         "matcher": "{}Ω",
-        "metric": true,
-        "equivalence": []
-    },
-    {
-        "name": "Degree",
-        "matcher": "{}°",
         "metric": true,
         "equivalence": []
     },
@@ -100,9 +94,81 @@
         "equivalence": []
     },
     {
-        "name": "Ohm",
-        "matcher": "{}Ω",
+        "name": "Farad",
+        "matcher": "{}F",
         "metric": true,
+        "equivalence": []
+    },
+    {
+        "name": "Farad",
+        "matcher": "{}F",
+        "metric": true,
+        "equivalence": []
+    },
+    {
+        "name": "Pascal",
+        "matcher": "{}Pa",
+        "metric": "true",
+        "equivalence": []
+    },
+    {
+        "name": "Siemens",
+        "matcher": "{}S",
+        "metric": "true",
+        "equivalence": []
+    },
+    {
+        "name": "Sievert",
+        "matcher": "{}Sv",
+        "metric": "true",
+        "equivalence": []
+    },
+    {
+        "name": "Pascal",
+        "matcher": "{}Pa",
+        "metric": "true",
+        "equivalence": []
+    },
+    {
+        "name": "Joule",
+        "matcher": "{}J",
+        "metric": "true",
+        "equivalence": []
+    },
+    {
+        "name": "Calorie",
+        "matcher": "{}C",
+        "metric": "true",
+        "equivalence": []
+    },
+    {
+        "name": "Lux",
+        "matcher": "{}lx",
+        "metric": "true",
+        "equivalence": []
+    },
+    {
+        "name": "Henry",
+        "matcher": "{}H",
+        "metric": "true",
+        "equivalence": []
+    },
+    {
+        "name": "Weber",
+        "matcher": "{}wb",
+        "metric": "true",
+        "equivalence": []
+    },
+    {
+        "name": "Dioptre",
+        "matcher": "{}dpt",
+        "metric": "true",
+        "equivalence": []
+    },
+    {
+        "name": "Pascal",
+        "matcher": "{}Pa",
+        "metric": "true",
         "equivalence": []
     }
 ]

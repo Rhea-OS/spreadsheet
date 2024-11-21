@@ -51,17 +51,6 @@ export default function Table<Row extends TableRow>(props: TableProps<Row>) {
         index: colIndex
     }))), [props.sheet.documentProperties]);
 
-    // props.sheet.state.setState({ columnWidths: columns.map(i => i.width ?? DEFAULT_COLUMN_WIDTH) })
-    //
-    // props.sheet.state.on("resize-column", state => setColumns(prev => prev.map((i, a) => ({
-    //     ...i,
-    //     width: state.columnWidths[a] ?? DEFAULT_COLUMN_WIDTH
-    // }))));
-    //
-    // React.useEffect(() => void props.sheet.state.setState({
-    //     columnWidths: columns.map(i => i.width)
-    // }), [columns]);
-
     const resizeColumn = (colIndex: number, width: number) => setColumns(prev => prev.with(colIndex, {
         ...prev[colIndex],
 

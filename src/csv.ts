@@ -1,6 +1,7 @@
 import * as expr from 'expression';
 import * as obs from "obsidian";
 import {DEFAULT_COLUMN_WIDTH, DEFAULT_ROW_HEIGHT} from "./components/table.js";
+import {Selection} from "./selection.js";
 
 export interface FrontMatter extends Record<string, any> {
     columnTypes?: string[],
@@ -214,6 +215,10 @@ export default class CSVDocument {
             columnWidths: new Array(this.documentProperties.columnTitles.length).fill(DEFAULT_COLUMN_WIDTH),
             rowHeights: new Array(this.raw.length).fill(DEFAULT_ROW_HEIGHT)
         }));
+    }
+
+    getValueAt(cell: Selection.Cell): Value {
+        return this.raw[cell.row][cell.col];
     }
 
     editFormat(col: number, format: string) {

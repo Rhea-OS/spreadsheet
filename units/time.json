@@ -18,7 +18,8 @@
         "name": "Hour",
         "matcher": "{}h",
         "equivalence": [
-            "3600s"
+            "3600s",
+            "60min"
         ]
     },
     {

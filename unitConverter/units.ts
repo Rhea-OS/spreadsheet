@@ -14,13 +14,12 @@ export default [
 
 export {default as multipliers} from '../units/multipliers.json';
 
-export const Qty: Unit = {
+export const Qty = {
     equivalence: [],
     matcher: `{}`,
     metric: true,
-    name: "Qty"
-
-};
+    name: "NoUnit" as const
+} satisfies Unit;
 
 export type Unit = {
     name: string,
