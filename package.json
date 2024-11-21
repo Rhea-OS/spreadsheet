@@ -5,14 +5,16 @@
     "type": "module",
     "dependencies": {
         "@j-cake/jcake-utils": "latest",
+        "@react-hook/event": "latest",
+        "@react-hook/mouse-position": "latest",
+        "@react-hook/resize-observer": "latest",
         "chalk": "latest",
-        "lucide-react": "latest",
-        "luxon": "latest",
-        "react": "latest",
-        "react-dom": "latest",
         "chrono-node": "https://github.com/wanasit/chrono.git",
         "expression": "link:../expression/expression-js/build/pkg",
-        "@react-hook/resize-observer": "latest"
+        "lucide-react": "latest",
+        "luxon": "latest",
+        "react": "0.0.0-experimental-64f89510-20241119",
+        "react-dom": "0.0.0-experimental-64f89510-20241119"
     },
     "scripts": {
         "build": "build phony:all phony:install"

@@ -1,10 +1,10 @@
 import React from 'react';
-import useResizeObserver from '@react-hook/resize-observer';
+// import useResizeObserver from '@react-hook/resize-observer';
+import useMousePosition from '@react-hook/mouse-position';
 
 import {DocumentProperties, Value} from "../csv.js";
 import {StateHolder} from "../main.js";
 import SelectionIndicator, {Selection} from "../selection.js";
-
 
 export const DEFAULT_COLUMN_WIDTH = 128;
 export const MIN_COLUMN_WIDTH = 24;
@@ -39,18 +39,34 @@ export interface TableProps<Row extends TableRow> {
 }
 
 export default function Table<Row extends TableRow>(props: TableProps<Row>) {
+
     const [columns, setColumns] = React.useState<ColumnHeader[]>([]);
 
-    React.useEffect(() => setColumns(props.sheet.documentProperties.columnTitles.map((col, colIndex) => ({
+    const ref = React.useRef<HTMLDivElement | null>(null);
+
+    React.useEffect(() => void setColumns(props.sheet.documentProperties.columnTitles.map((col, colIndex) => ({
         title: col,
         width: columns?.[colIndex]?.width ?? DEFAULT_COLUMN_WIDTH,
         render: props.renderColumn,
         index: colIndex
-    }))), [props]);
+    }))), [props.sheet.documentProperties]);
 
-    const ref = React.useRef<HTMLDivElement | null>(null);
+    // props.sheet.state.setState({ columnWidths: columns.map(i => i.width ?? DEFAULT_COLUMN_WIDTH) })
+    //
+    // props.sheet.state.on("resize-column", state => setColumns(prev => prev.map((i, a) => ({
+    //     ...i,
+    //     width: state.columnWidths[a] ?? DEFAULT_COLUMN_WIDTH
+    // }))));
+    //
+    // React.useEffect(() => void props.sheet.state.setState({
+    //     columnWidths: columns.map(i => i.width)
+    // }), [columns]);
 
-    const resizeColumn = (colIndex: number, width: number) => setColumns(prev => prev.with(colIndex, { ...prev[colIndex], width }));
+    const resizeColumn = (colIndex: number, width: number) => setColumns(prev => prev.with(colIndex, {
+        ...prev[colIndex],
+
+        width: Math.max(MIN_COLUMN_WIDTH, width),
+    }));
 
     return <section
         className={"table-widget"}
@@ -67,7 +83,7 @@ export default function Table<Row extends TableRow>(props: TableProps<Row>) {
             <div className={"top-left-corner"}/>
 
             {columns.map((header, colIndex) => <TableHeaderCell
-                onResize={size => resizeColumn(colIndex, size.width + 1)}
+                onResize={size => resizeColumn(colIndex, size)}
                 header={header}
                 colIndex={colIndex}
             />)}
@@ -93,22 +109,43 @@ export default function Table<Row extends TableRow>(props: TableProps<Row>) {
                 </div>)}
             </>)}
 
-            {props.children.selection ? <SelectionIndicator selection={props.children.selection} sheet={props.sheet} /> : null}
+            {props.children.selection ?
+                <SelectionIndicator selection={props.children.selection} sheet={props.sheet}/> : null}
 
         </section>
     </section>;
 }
 
 export function TableHeaderCell(props: {
-    onResize: (bounds: DOMRectReadOnly) => void,
+    onResize?: (width: number) => void,
     header: ColumnHeader,
     colIndex: number
 }) {
     const ref = React.useRef<HTMLDivElement>(null);
 
-    // This thing apparently isn't a function... Actually it is
+    const [state, setState] = React.useState({
+        width: props.header.width ?? DEFAULT_COLUMN_WIDTH,
+        prevMouseX: null as null | number
+    });
+
     // @ts-ignore
-    useResizeObserver(ref, e => props.onResize(e.contentRect));
+    const mouse = useMousePosition(document.body, {fps: 60});
+
+    React.useEffect(() => {
+        if (state.prevMouseX && mouse.isDown)
+            setState(prev => ({
+                width: prev.width + (mouse.x - (prev.prevMouseX ?? mouse.x)),
+                prevMouseX: mouse.x
+            }));
+        else if (state.prevMouseX && !mouse.isDown)
+            setState(prev => ({
+                width: prev.width,
+                prevMouseX: null
+            }))
+    }, [mouse]);
+
+    if (props.onResize)
+        React.useEffect(() => props.onResize?.(state.width), [state]);
 
     return <header
         className={"table-header-cell"}
@@ -120,6 +157,14 @@ export function TableHeaderCell(props: {
         ref={ref}>
 
         {props.header.render(props.header)}
+
+        {props.onResize ? <span className={"resize-handle"}
+                                onMouseDown={e => {
+                                    setState(prev => ({
+                                        ...prev,
+                                        prevMouseX: mouse.x
+                                    }))
+                                }}></span> : null}
 
     </header>
 }
@@ -139,7 +184,7 @@ export function mkTableCell<Row extends TableRow>(document: StateHolder, child: 
             id: rowIndex,
             data: Object.fromEntries(row.map((col, colIndex) => [
                 document.documentProperties.columnTitles[colIndex],
-                () => child(col, { col: colIndex, row: rowIndex })
+                () => child(col, {col: colIndex, row: rowIndex})
             ]))
         })) as Row[],
         selection

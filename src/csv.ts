@@ -1,7 +1,6 @@
 import * as expr from 'expression';
 import * as obs from "obsidian";
 import {DEFAULT_COLUMN_WIDTH, DEFAULT_ROW_HEIGHT} from "./components/table.js";
-import {Selection} from "./selection.js";
 
 export interface FrontMatter extends Record<string, any> {
     columnTypes?: string[],

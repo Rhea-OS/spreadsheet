@@ -19,6 +19,8 @@ export interface EditorState {
     selection: Selection.CellGroup[],
     activeCell: Selection.Cell | null,
 
+    columnWidths: number[],
+
     // Values will be sorted according to the first key in the list. If two identical values appear, the next key along is used until no keys left. In which case the row number is used. 
     sortRows: string[],
 

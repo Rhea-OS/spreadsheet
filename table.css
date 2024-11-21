@@ -19,6 +19,17 @@
     border-right: var(--table-border-width) solid var(--table-border-color);
 }
 
-.table-header-cell:not(:last-of-type) {
-    resize: horizontal;
+/*.table-header-cell:not(:last-of-type) {*/
+/*    resize: horizontal;*/
+/*}*/
+
+.table-header-cell .resize-handle {
+    display: block;
+    width: var(--size-4-1);
+    background: var(--color-base-35);
+    cursor: col-resize;
+}
+
+.table-header-cell .resize-handle:hover {
+    background: hsl(var(--accent-h), var(--accent-s), var(--accent-l));
 }
