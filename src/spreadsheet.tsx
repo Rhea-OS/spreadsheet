@@ -89,18 +89,73 @@ export default class SpreadsheetView extends obs.TextFileView implements StateHo
     select(relCol: number, relRow: number, expand: boolean = false) {
         const state = this.state.get();
 
-        const cell = state.activeCell || Selection.topLeft(state.selection);
+        if (!expand) {
+            const cell = state.activeCell || Selection.topLeft(state.selection);
 
-        if (!cell)
-            return;
+            if (!cell)
+                return;
 
-        cell.col = Math.max(0, cell.col + relCol);
-        cell.row = Math.max(0, cell.row + relRow);
+            cell.col = Math.max(0, cell.col + relCol);
+            cell.row = Math.max(0, cell.row + relRow);
 
-        this.state.dispatch("selection-change", prev => ({
-            selection: Selection.simplify(expand ? [...prev.selection, cell] : [cell]),
-            activeCell: cell,
-        }));
+            this.state.dispatch("selection-change", prev => ({
+                // selection: Selection.simplify(expand ? [...prev.selection, cell] : [cell]),
+                selection: [cell],
+                activeCell: cell,
+            }));
+        } else {
+            let selection = state.activeCell || state.selection.last();
+
+            if (!selection)
+                return;
+
+            if (Selection.isCell(selection))
+                selection = Selection.normaliseRange({
+                    from: {row: selection.row + relRow, col: selection.col + relCol},
+                    to: selection
+                } satisfies Selection.Range);
+
+            else if (Selection.isRange(selection))
+                selection = Selection.normaliseRange({
+                    from: {
+                        row: Math.max(0, selection.from.row + Math.min(0, relRow)),
+                        col: Math.max(0, selection.from.col + Math.min(0, relCol)),
+                    },
+                    to: {
+                        row: Math.max(0, selection.to.row + Math.max(0, relRow)),
+                        col: Math.max(0, selection.to.col + Math.max(0, relCol)),
+                    },
+                } satisfies Selection.Range)
+
+            else if (Selection.isRowVector(selection))
+                selection = Selection.normaliseVectorRange({
+                    from: {row: Math.max(0, selection.row + relRow)},
+                    to: {row: selection.row}
+                } satisfies Selection.RowVectorRange);
+
+            else if (Selection.isRowVectorRange(selection))
+                selection = Selection.normaliseVectorRange({
+                    from: {row: Math.max(0, selection.from.row + Math.min(0, relRow))},
+                    to: {row: Math.max(0, selection.from.row + Math.max(0, relRow))},
+                } satisfies Selection.RowVectorRange)
+
+            else if (Selection.isColumnVector(selection))
+                selection = Selection.normaliseVectorRange({
+                    from: {col: Math.max(selection.col + relCol)},
+                    to: {col: selection.col}
+                } satisfies Selection.ColumnVectorRange);
+
+            else if (Selection.isColumnVectorRange(selection))
+                selection = Selection.normaliseVectorRange({
+                    from: {col: Math.max(0, selection.from.col + Math.min(0, relCol))},
+                    to: {col: Math.max(0, selection.from.col + Math.max(0, relCol))},
+                } satisfies Selection.ColumnVectorRange);
+
+            this.state.dispatch("selection-change", prev => ({
+                selection: [selection],
+                activeCell: null,
+            }));
+        }
     }
 
     insertCol(col?: number) {
@@ -172,12 +227,21 @@ export function Spreadsheet(props: { sheet: StateHolder, settings: Settings }) {
 
     function endSelection(e: React.MouseEvent) {
         if (selectionState)
-            setSelection(e.shiftKey ? prev => [...prev, toGroup(selectionState)] : [toGroup(selectionState)]);
+            props.sheet.state.dispatch("selection-change", e.shiftKey ? prev => ({
+                selection: Selection.simplify([...prev.selection, toGroup(selectionState)])
+            }) : {
+                selection: [toGroup(selectionState)]
+            });
+        // setSelection(e.shiftKey ? prev => Selection.simplify([...prev, toGroup(selectionState)]) : [toGroup(selectionState)]);
 
         setSelectionState(null);
     }
 
-    function onKeyDown(e: KeyboardEvent) {
+    // @ts-ignore
+    useEvent(document.body, 'keydown', (e: KeyboardEvent) => {
+        if (!table.current?.isActiveElement() && !table.current?.matches(":focus, :focus-within"))
+            return;
+
         const key = ({
             Enter() {
                 e.preventDefault();
@@ -188,25 +252,25 @@ export function Spreadsheet(props: { sheet: StateHolder, settings: Settings }) {
                 props.sheet.select(e.shiftKey ? -1 : 1, 0);
             },
             ArrowUp() {
-                // if (active) return;
+                if (active) return;
 
                 e.preventDefault();
                 props.sheet.select(0, -1, e.shiftKey);
             },
             ArrowLeft() {
-                // if (active) return;
+                if (active) return;
 
                 e.preventDefault();
                 props.sheet.select(-1, 0, e.shiftKey);
             },
             ArrowDown() {
-                // if (active) return;
+                if (active) return;
 
                 e.preventDefault();
                 props.sheet.select(0, 1, e.shiftKey);
             },
             ArrowRight() {
-                // if (active) return;
+                if (active) return;
 
                 e.preventDefault();
                 props.sheet.select(1, 0, e.shiftKey);
@@ -225,16 +289,13 @@ export function Spreadsheet(props: { sheet: StateHolder, settings: Settings }) {
         } as Record<string, () => void>)[e.key];
 
         if (key) key();
-        else if(e.key !== "Shift" && e.key !== "Control" && e.key !== "Alt") props.sheet.state.dispatch("selection-change", prev => ({
-            activeCell: prev.activeCell ?? Selection.topLeft(prev.selection),
-            selection: [prev.activeCell ?? Selection.topLeft(prev.selection)].filter(i => !!i)
-        }))
-    }
-
-    // @ts-ignore
-    useEvent(document.body, 'keydown', (e: KeyboardEvent) => {
-        if (table.current?.isActiveElement() || table.current?.matches(":focus, :focus-within"))
-            return onKeyDown(e);
+        else if (e.key !== "Shift" && e.key !== "Control" && e.key !== "Alt")
+            props.sheet.state.dispatch("selection-change", prev => ({
+                activeCell: prev.activeCell ?? Selection.topLeft(prev.selection),
+                selection: [prev.activeCell ?? Selection.topLeft(prev.selection)].filter(i => !!i)
+            }))
+        else
+            e.preventDefault()
     });
 
     React.useEffect(() => {
@@ -243,13 +304,13 @@ export function Spreadsheet(props: { sheet: StateHolder, settings: Settings }) {
     });
 
     return <section
-        className={"table-widget"}>
+        className={"table-widget"}
+        ref={table}
+        tabIndex={-1}>
 
         <Toolbar settings={props.settings} sheet={sheet}/>
 
         <div className={"spreadsheet"}
-             ref={table}
-             tabIndex={-1}
              onMouseUp={e => endSelection(e)}>
             <Table
                 sheet={sheet}

@@ -111,6 +111,11 @@ export namespace Selection {
             })[0];
     }
 
+    /// B is completely encased by A
+    export function isSubrangeOf(a: Range, b: Range): boolean {
+        return (a.from.col <= b.from.col && a.to.col >= b.to.col) && (a.from.row <= b.from.row && a.to.row >= b.to.row);
+    }
+
     export function* iterCells(selection: CellGroup[]): Generator<Cell> {
         for (const group of simplify(selection))
             if (Selection.isCell(group))
@@ -118,18 +123,223 @@ export namespace Selection {
             else if (Selection.isRange(group))
                 for (const row of iter.iterSync.range(group.from.row, group.to.row + 1))
                     for (const col of iter.iterSync.range(group.from.col, group.to.col + 1))
-                        yield { row, col };
-            // TODO: vectors
+                        yield {row, col};
+        // TODO: vectors
+    }
+
+    export type Name = {
+        'cell': Cell,
+        'range': Range,
+        'column': Column,
+        'row': Row,
+        'colvec': ColumnVectorRange,
+        'rowvec': RowVectorRange,
+    };
+
+    type KeysMatching<T extends object, V> = {
+        [K in keyof T]-?: T[K] extends V ? K : never
+    }[keyof T];
+
+    export function getGroupType<Group extends CellGroup, Out extends KeysMatching<Name, Group>>(t: Group): Out {
+        if (Selection.isCell(t))
+            return 'cell' as Out;
+
+        else if (Selection.isRange(t))
+            return 'range' as Out;
+
+        else if (Selection.isColumnVector(t))
+            return 'column' as Out;
+
+        else if (Selection.isRowVector(t))
+            return 'row' as Out;
+
+        else if (Selection.isColumnVectorRange(t))
+            return 'colvec' as Out;
+
+        else if (Selection.isRowVectorRange(t))
+            return 'rowvec' as Out;
+
+        else throw new Error('Unreachable');
     }
 
     export function isColliding(a: CellGroup, b: CellGroup): boolean {
+        return ({
+            cell(a, b): boolean {
+                if (Selection.isCell(b))
+                    return Selection.eqCell(a, b);
 
+                else if (Selection.isRange(b))
+                    return (b.from.col >= a.col && b.to.col <= a.col) && (b.from.row >= a.row && b.to.row <= a.row);
+
+                else if (Selection.isColumnVector(b))
+                    return b.col == a.col;
+
+                else if (Selection.isRowVector(b))
+                    return b.row == a.row;
+
+                else if (Selection.isColumnVectorRange(b))
+                    return b.from.col >= a.col && b.to.col <= a.col;
+
+                else if (Selection.isRowVectorRange(b))
+                    return b.from.row >= a.row && b.to.row <= a.row;
+
+                else return false;
+            },
+            range(a, b): boolean {
+                if (Selection.isCell(b))
+                    return isColliding(b, a);
+
+                else if (Selection.isRange(b))
+                    return (b.to.col >= a.from.col && b.from.col <= a.to.col) &&
+                        (b.to.row >= a.from.row && b.from.row <= a.to.row);
+
+                else if (Selection.isColumnVector(b))
+                    return b.col >= a.from.col && a.to.col <= a.to.col;
+
+                else if (Selection.isRowVector(b))
+                    return b.row >= a.from.row && a.to.row <= a.to.row;
+
+                else if (Selection.isColumnVectorRange(b))
+                    return (b.to.col >= a.from.col && b.from.col <= a.to.col);
+
+                else if (Selection.isRowVectorRange(b))
+                    return (b.to.row >= a.from.row && b.from.row <= a.to.row);
+
+                else return false;
+            },
+            column(a, b): boolean {
+                if (Selection.isCell(b))
+                    return isColliding(b, a);
+
+                else if (Selection.isRange(b))
+                    return isColliding(b, a);
+
+                else if (Selection.isColumnVector(b))
+                    return a.col == b.col;
+
+                else if (Selection.isRowVector(b))
+                    return true;
+
+                else if (Selection.isColumnVectorRange(b))
+                    return a.col >= b.from.col && a.col <= b.to.col;
+
+                else if (Selection.isRowVectorRange(b))
+                    return true;
+
+                else return false;
+            },
+            row(a, b): boolean {
+                if (Selection.isCell(b))
+                    return isColliding(b, a);
+
+                else if (Selection.isRange(b))
+                    return isColliding(b, a);
+
+                else if (Selection.isColumnVector(b))
+                    return true;
+
+                else if (Selection.isRowVector(b))
+                    return a.row == b.row;
+
+                else if (Selection.isColumnVectorRange(b))
+                    return true;
+
+                else if (Selection.isRowVectorRange(b))
+                    return a.row >= b.from.row && a.row <= b.to.row;
+
+                else return false;
+            },
+            colvec(a, b): boolean {
+                return isColliding(b, a);
+            },
+            rowvec(a, b): boolean {
+                return isColliding(b, a);
+            }
+        } satisfies { [K in KeysMatching<Name, CellGroup>]: (a: Name[K], b: CellGroup) => boolean })[getGroupType(a)](a as any, b);
     }
 
+    export function boundingRange(a: Selection.CellGroup, b: Selection.CellGroup): Selection.CellGroup | null {
+        if (Selection.isCell(a) && Selection.isCell(b)) {
+            return Selection.rangeFromCell(a, b);
+        } else if (Selection.isRange(a) && Selection.isRange(b)) {
+            let min = {
+                row: Math.min(a.from.row, b.from.row),
+                col: Math.min(a.from.col, b.from.col),
+            };
+            let max = {
+                row: Math.min(a.to.row, b.to.row) + 1,
+                col: Math.min(a.to.col, b.to.col) + 1,
+            };
+
+            return Selection.rangeFromCell(min, max);
+        }
+
+        return null;
+    }
+
+    export function isAdjacent(a: Selection.CellGroup, b: Selection.CellGroup): boolean {
+        if (Selection.isCell(a) && Selection.isCell(b))
+            return Math.abs(a.col - b.col) <= 1 && Math.abs(a.row - b.row) <= 1;
+
+        // if (Selection.isRange(a) && Selection.isRange(b))
+
+        return false;
+    }
+
+    /// Reduces the list of selected ranges such that each cell appears at most once.
+    /// This function appears to complete in O(n**2) time, so use sparingly.
     export function simplify(selection: CellGroup[]): CellGroup[] {
         const reduced: CellGroup[] = [];
 
+        for (const a of selection.map(i => Selection.isRange(i) ? Selection.normaliseRange(i) : Selection.isVectorRange(i) ? Selection.normaliseVectorRange(i) : i)) {
+            let didCollide = false;
+            for (const [index, b] of reduced.map((i, a) => [a, i] as const))
+                if (isColliding(a, b)) {
+                    didCollide = true;
 
+                    if (Selection.isRange(a) && Selection.isRange(b) && !Selection.eqRange(a, b))
+                        if (Selection.isSubrangeOf(a, b)) // b is completely contained within a
+                            reduced[index] = a;
+
+                        else if (!Selection.isSubrangeOf(b, a)) {
+                            // To simplify this function, we slice A horizontally and B vertically
+
+                            const bounded = Selection.boundingRange(a, b);
+                            if (bounded)
+                                reduced.splice(index, 1, bounded);
+
+                            // const a_split: Range[] = [{
+                            //
+                            // }];
+                            // const b_split: Range[] = [
+                            //
+                            // ];
+                            //
+                            // const ranges: Range[] = [...a_split, ...b_split]
+                            //     .map(i => Selection.normaliseRange(i));
+                            // reduced.splice(index, 1, ...ranges.filter(i => Selection.area(i) > 0));
+                        }
+
+                    // else Do nothing, the range is covered by `b`
+
+                    // Do nothing else because:
+                    // - Cell is covered by the case above (Do nothing)
+                    // - If ranges equal, only keep one, thus do nothing
+                    // - Vectors always take precedence over range, thus do nothing
+                } else if (isAdjacent(a, b)) {
+                    const bounded = Selection.boundingRange(a, b);
+                    if (bounded)
+                        reduced.splice(index, 1, bounded);
+                }
+
+            if (!didCollide)
+                reduced.push(a);
+        }
+
+        // merge adjacent selections if the orthogonal axis upon which they intersect are equal
+
+        // IE |__|__| would get merged because they both span two units horizontally and share the same `from` horizontal coordinate
+        //    |  |  |
 
         return reduced;
     }

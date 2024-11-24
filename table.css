@@ -25,11 +25,11 @@
 
 .table-header-cell .resize-handle {
     display: block;
-    width: var(--size-4-1);
-    background: var(--color-base-35);
     cursor: col-resize;
+    width: var(--divider-width-hover);
 }
 
 .table-header-cell .resize-handle:hover {
-    background: hsl(var(--accent-h), var(--accent-s), var(--accent-l));
+    background-color: var(--divider-color-hover);
+    border-color: var(--divider-color-hover);
 }
