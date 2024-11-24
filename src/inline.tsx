@@ -48,16 +48,16 @@ export function ReadonlyUi(props: {
         sheet={props.sheet}
         renderColumn={col => <span className={"column-title"}>{col.title}</span>}
         renderRow={row => <span className={"row-title"}>{row}</span>}>
-        {mkTableCell(props.sheet, col => <div className={"table-cell-inner"}>
+        {mkTableCell(props.sheet, (col, addr) => <div className={"table-cell-inner"}>
             <span>
-                {computedValue(col)}
+                {computedValue(col, { addr })}
             </span>
         </div>)}
     </Table>
 }
 
-export function computedValue(col: Value): React.ReactNode {
-    const value = col.getComputedValue();
+export function computedValue(col: Value, cx: any): React.ReactNode {
+    const value = col.getComputedValue(cx);
 
     if (typeof value == 'string')
         if (col.isComputedValue())
@@ -70,6 +70,6 @@ export function computedValue(col: Value): React.ReactNode {
             </>;
     else
         return <i>
-            {value.err}
+            {`${value}`}
         </i>
 }

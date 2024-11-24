@@ -384,7 +384,7 @@ export function EditableTableCell(props: { cell: Value, edit?: boolean, sheet: S
                })}/>
     </> : <>
         <span>
-            {computedValue(props.cell)}
+            {computedValue(props.cell, { addr: props.addr })}
         </span>
     </>}</div>
 }

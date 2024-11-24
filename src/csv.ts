@@ -27,7 +27,7 @@ export interface Value {
 
     document: () => CSVDocument,
 
-    getComputedValue(): string | { err: string };
+    getComputedValue(context: any): string | { err: string };
 }
 
 export function value(raw: string, sheet: CSVDocument): Value {
@@ -50,15 +50,15 @@ export function value(raw: string, sheet: CSVDocument): Value {
             return () => watches.includes(callback) ? void watches.splice(watches.indexOf(callback), 1) : void 0
         },
 
-        getComputedValue(): string | { err: string } {
+        getComputedValue(context: any): string | { err: string } {
             if (isComputedValue())
                 try {
-                    return sheet.cx.evaluate(raw.slice(1)).toString();
+                    return `${sheet.cx.evaluate(raw.slice(1), context)}`;
                 } catch (err) {
                     if (err)
                         return { err: err.toString() };
                     else
-                        return { err: 'Unkown Error' };
+                        return { err: 'Unknown Error' };
                 }
             else
                 return raw;
@@ -109,7 +109,10 @@ export default class CSVDocument {
             countRows: () => this.raw.length,
             getRow: (row: number) => this.raw[row],
             listColumns: () => this.documentProperties.columnTitles,
-            listRows: () => this.raw.map(i => i.map(j => j.getRaw()))
+            listRows: () => this.raw.map(i => i.map(j => j.getRaw())),
+            query(address) {
+                console.log(this, address)
+            }
         }));
 
         const watchers: (() => void)[] = [];
