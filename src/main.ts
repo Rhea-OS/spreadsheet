@@ -1,4 +1,3 @@
-import * as path from 'node:path';
 import * as obs from 'obsidian';
 
 import SpreadsheetView, {EditorState, SPREADSHEET_VIEW} from "./spreadsheet.js";
@@ -28,8 +27,8 @@ export default class SpreadsheetPlugin extends obs.Plugin {
                 .setIcon("sheet")
                 .onClick(async _ => {
                     // TODO: Handle existing files
-                    const newFile = path.join(obs.normalizePath(file.path ?? this.app.vault.getRoot()), 'sheet.csv');
-                    
+                    const newFile = `${obs.normalizePath(file.path ?? this.app.vault.getRoot())}/sheet.csv`;
+
                     const tfile = await this.app.vault.create(newFile, 'Column 1;Column 2\n;');
                     await this.app.workspace.getLeaf(false).openFile(tfile);
                 }))));
@@ -49,7 +48,8 @@ export interface StateHolder {
     state: StateManager<EditorState>,
     app: obs.App,
 
-    moveActive(relCol: number, relRow: number): void,
+    select(relCol: number, relRow: number, expand?: boolean): void,
+
     columnType(col: number): string,
     insertCol(col: number): void,
     insertRow(col: number): void,

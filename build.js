@@ -15,7 +15,7 @@ export default {
             entryPoints: ["src/main.ts"],
             bundle: true,
             sourcemap: true,
-            platform: 'node',
+            platform: 'browser',
             format: 'cjs',
             loader: {
                 ".ttf": "copy",

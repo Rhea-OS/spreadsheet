@@ -217,8 +217,8 @@ export default class CSVDocument {
         }));
     }
 
-    getValueAt(cell: Selection.Cell): Value {
-        return this.raw[cell.row][cell.col];
+    getValueAt(cell: Selection.Cell): Value | null {
+        return this.raw?.[cell.row]?.[cell.col] ?? null;
     }
 
     editFormat(col: number, format: string) {
@@ -227,28 +227,50 @@ export default class CSVDocument {
         }));
     }
 
-    insertCol(col: number) {
-        // Warning: I see a potential for bugs here.
-        for (const row of this.raw)
-            row.splice(col + 1, 0, value("", this));
+    insertCol(col?: number) {
+        if (col) {
+            // Warning: I see a potential for bugs here.
+            for (const row of this.raw)
+                row.splice(col + 1, 0, value("", this));
 
-        this.change = new Date();
+            this.change = new Date();
 
-        this.updateDocumentProperties(prev => ({
-            columnTitles: [...prev.columnTitles.slice(0, col + 1), `Column ${col + 2}`, ...prev.columnTitles.slice(col + 1)],
-            columnTypes: [...prev.columnTypes.slice(0, col + 1), 'raw', ...prev.columnTypes.slice(col + 1)],
-            columnWidths: [...prev.columnWidths.slice(0, col + 1), DEFAULT_COLUMN_WIDTH, ...prev.columnWidths.slice(col + 1)],
-        }));
+            this.updateDocumentProperties(prev => ({
+                columnTitles: [...prev.columnTitles.slice(0, col + 1), `Column ${col + 2}`, ...prev.columnTitles.slice(col + 1)],
+                columnTypes: [...prev.columnTypes.slice(0, col + 1), 'raw', ...prev.columnTypes.slice(col + 1)],
+                columnWidths: [...prev.columnWidths.slice(0, col + 1), DEFAULT_COLUMN_WIDTH, ...prev.columnWidths.slice(col + 1)],
+            }));
+        } else {
+            for (const row of this.raw)
+                row.push(value("", this));
+
+            this.change = new Date();
+
+            this.updateDocumentProperties(prev => ({
+                columnTitles: [...prev.columnTitles, `Column ${prev.columnTitles.length + 2}`],
+                columnTypes: [...prev.columnTypes, 'raw'],
+                columnWidths: [...prev.columnWidths, DEFAULT_COLUMN_WIDTH],
+            }));
+        }
     }
 
-    insertRow(row: number) {
-        // Warning: I see a potential for bugs here.
-        this.raw.splice(row + 1, 0, new Array(this.#props.columnTypes.length).fill("").map(cell => value(cell, this)));
-        this.change = new Date();
+    insertRow(row?: number) {
+        if (row) {
+            // Warning: I see a potential for bugs here.
+            this.raw.splice(row + 1, 0, new Array(this.#props.columnTypes.length).fill("").map(cell => value(cell, this)));
+            this.change = new Date();
 
-        this.updateDocumentProperties(prev => ({
-            rowHeights: [...prev.rowHeights.slice(0, row + 1), DEFAULT_ROW_HEIGHT, ...prev.rowHeights.slice(row + 1)],
-        }));
+            this.updateDocumentProperties(prev => ({
+                rowHeights: [...prev.rowHeights.slice(0, row + 1), DEFAULT_ROW_HEIGHT, ...prev.rowHeights.slice(row + 1)],
+            }));
+        } else {
+            this.raw.push(new Array(this.#props.columnTypes.length).fill("").map(cell => value(cell, this)));
+            this.change = new Date();
+
+            this.updateDocumentProperties(prev => ({
+                rowHeights: [...prev.rowHeights, DEFAULT_ROW_HEIGHT],
+            }));
+        }
     }
 
     removeCol(col: number) {

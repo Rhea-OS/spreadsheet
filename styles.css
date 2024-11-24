@@ -182,15 +182,15 @@ input[type="text"].column-title-rename {
     /* border: var(--indentation-guide-width) solid var(--indentation-guide-color-active); */
     /*position: absolute;*/
     background: hsla(var(--accent-h), var(--accent-s), var(--accent-l), 25%);
-    outline: var(--table-border-width) solid hsl(var(--accent-h), var(--accent-s), var(--accent-l));
+    outline: var(--table-selection-border-width) solid var(--table-selection-border-color);
     border-radius: var(--radius-s);
     pointer-events: none;
 
     --expand: 6px;
 
-    padding: 1px 0 0 1px;
+    /*padding: 1px 0 0 1px;*/
     box-sizing: content-box;
-    margin: -1px 0 0 -1px;
+    /*margin: -1px 0 0 -1px;*/
     z-index: 2;
 }
 

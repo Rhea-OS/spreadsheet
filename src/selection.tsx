@@ -112,7 +112,7 @@ export namespace Selection {
     }
 
     export function* iterCells(selection: CellGroup[]): Generator<Cell> {
-        for (const group of selection)
+        for (const group of simplify(selection))
             if (Selection.isCell(group))
                 yield group;
             else if (Selection.isRange(group))
@@ -120,6 +120,18 @@ export namespace Selection {
                     for (const col of iter.iterSync.range(group.from.col, group.to.col + 1))
                         yield { row, col };
             // TODO: vectors
+    }
+
+    export function isColliding(a: CellGroup, b: CellGroup): boolean {
+
+    }
+
+    export function simplify(selection: CellGroup[]): CellGroup[] {
+        const reduced: CellGroup[] = [];
+
+
+
+        return reduced;
     }
 }
 

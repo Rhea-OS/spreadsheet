@@ -19,9 +19,9 @@
     border-right: var(--table-border-width) solid var(--table-border-color);
 }
 
-/*.table-header-cell:not(:last-of-type) {*/
-/*    resize: horizontal;*/
-/*}*/
+.table-header-cell {
+    background: var(--code-background);
+}
 
 .table-header-cell .resize-handle {
     display: block;

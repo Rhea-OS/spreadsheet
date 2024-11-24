@@ -13,7 +13,6 @@ import {computedValue} from "./inline.js";
 import {Selection} from "./selection.js";
 import {columnContextMenu, rowContextMenu} from "./contextMenu.js";
 import {renameColumn} from "./renameColumn.js";
-import * as iter from "@j-cake/jcake-utils/iter";
 
 export const SPREADSHEET_VIEW = "spreadsheet-view";
 
@@ -51,21 +50,16 @@ export default class SpreadsheetView extends obs.TextFileView implements StateHo
             selection: [],
             activeCell: null
         });
-    }
 
-    moveActive(relCol: number, relRow: number) {
-        const state = this.state.get();
+        this.state.on("selection-change", prev => {
+            if (prev.activeCell && !this.doc.getValueAt(prev.activeCell)) {
+                for (let col = this.doc.documentProperties.columnTitles.length; col <= prev.activeCell.col; col++)
+                    this.insertCol();
 
-        const active = {
-            row: Math.max(0, (state.activeCell?.row ?? 0) + relRow),
-            col: Math.max(0, (state.activeCell?.col ?? 0) + relCol)
-        };
-
-        if (active.row >= 0 && !Array.isArray(this.doc.raw[active.row]))
-            this.doc.insertRow(active.row);
-
-        this.state.dispatch('change-active', _ => ({activeCell: active}));
-        this.state.dispatch("sync-selection", _ => ({selection: [active]}))
+                for (let row = this.doc.raw.length; row <= prev.activeCell.row; row++)
+                    this.insertRow();
+            }
+        });
     }
 
     getViewData(): string {
@@ -92,11 +86,28 @@ export default class SpreadsheetView extends obs.TextFileView implements StateHo
         return this.doc.onExternalChange(watcher);
     }
 
-    insertCol(col: number) {
+    select(relCol: number, relRow: number, expand: boolean = false) {
+        const state = this.state.get();
+
+        const cell = state.activeCell || Selection.topLeft(state.selection);
+
+        if (!cell)
+            return;
+
+        cell.col = Math.max(0, cell.col + relCol);
+        cell.row = Math.max(0, cell.row + relRow);
+
+        this.state.dispatch("selection-change", prev => ({
+            selection: Selection.simplify(expand ? [...prev.selection, cell] : [cell]),
+            activeCell: cell,
+        }));
+    }
+
+    insertCol(col?: number) {
         this.doc.insertCol(col);
     }
 
-    insertRow(row: number) {
+    insertRow(row?: number) {
         this.doc.insertRow(row);
     }
 
@@ -167,68 +178,57 @@ export function Spreadsheet(props: { sheet: StateHolder, settings: Settings }) {
     }
 
     function onKeyDown(e: KeyboardEvent) {
-        // const prev = props.sheet.state.get();
-
-        const dir: Record<string, (prev: Selection.Cell) => Selection.Cell> = {
-            up: prev => ({
-                col: prev.col,
-                row: Math.max(0, prev.row - 1)
-            }),
-            down: prev => ({
-                col: prev.col,
-                row: prev.row + 1
-            }),
-            left: prev => ({
-                col: Math.max(0, prev.col - 1),
-                row: prev.row
-            }),
-            right: prev => ({
-                col: prev.col + 1,
-                row: prev.row
-            })
-        };
-
         const key = ({
-            "Enter": e.shiftKey ? 'up' : 'down',
-            "Tab": e.shiftKey ? 'left' : 'right',
-            "ArrowLeft": 'left',
-            "ArrowRight": 'right',
-            "ArrowUp": 'up',
-            "ArrowDown": 'down',
-        })[e.key] ?? '';
+            Enter() {
+                e.preventDefault();
+                props.sheet.select(0, e.shiftKey ? -1 : 1);
+            },
+            Tab() {
+                e.preventDefault();
+                props.sheet.select(e.shiftKey ? -1 : 1, 0);
+            },
+            ArrowUp() {
+                // if (active) return;
 
-        console.log(e.key);
+                e.preventDefault();
+                props.sheet.select(0, -1, e.shiftKey);
+            },
+            ArrowLeft() {
+                // if (active) return;
 
-        const current = active ?? Selection.topLeft(selection);
-        const cell = key && current && dir[key](current);
+                e.preventDefault();
+                props.sheet.select(-1, 0, e.shiftKey);
+            },
+            ArrowDown() {
+                // if (active) return;
 
-        if (cell && Selection.isCell(cell)) {
-            e.preventDefault();
-            props.sheet.state.dispatch("selection-change", {
-                selection: [cell],
-                activeCell: cell
-            });
-            return false;
-        } else {
-            const cb = ({
-                "Delete": () => {
-                    for (const cell of Selection.iterCells(selection))
-                        props.sheet.doc.getValueAt(cell).setRaw("");
-                },
-                "Escape": () => {
-                    props.sheet.state.dispatch("selection-change", {
-                        activeCell: null
-                    })
-                }
-            } as Record<string, () => void>)[e.key];
+                e.preventDefault();
+                props.sheet.select(0, 1, e.shiftKey);
+            },
+            ArrowRight() {
+                // if (active) return;
 
-            if (cb)
-                cb()
-            else if (!e.ctrlKey && !e.shiftKey && !e.altKey && !e.metaKey)
+                e.preventDefault();
+                props.sheet.select(1, 0, e.shiftKey);
+            },
+            Delete() {
+                e.preventDefault();
+
+                for (const cell of Selection.iterCells(selection))
+                    props.sheet.doc.getValueAt(cell)?.setRaw("");
+            },
+            Escape() {
                 props.sheet.state.dispatch("selection-change", {
-                    activeCell: current
+                    activeCell: null
                 });
-        }
+            }
+        } as Record<string, () => void>)[e.key];
+
+        if (key) key();
+        else if(e.key !== "Shift" && e.key !== "Control" && e.key !== "Alt") props.sheet.state.dispatch("selection-change", prev => ({
+            activeCell: prev.activeCell ?? Selection.topLeft(prev.selection),
+            selection: [prev.activeCell ?? Selection.topLeft(prev.selection)].filter(i => !!i)
+        }))
     }
 
     // @ts-ignore
