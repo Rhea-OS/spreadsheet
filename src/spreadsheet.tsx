@@ -129,8 +129,8 @@ export default class SpreadsheetView extends obs.TextFileView implements StateHo
 
             else if (Selection.isRowVector(selection))
                 selection = Selection.normaliseVectorRange({
-                    from: {row: Math.max(0, selection.row + relRow)},
-                    to: {row: selection.row}
+                    from: {row: Math.max(0, selection.row + Math.min(0, relRow))},
+                    to: {row: Math.max(0, selection.row + Math.max(0, relRow))}
                 } satisfies Selection.RowVectorRange);
 
             else if (Selection.isRowVectorRange(selection))
@@ -141,14 +141,14 @@ export default class SpreadsheetView extends obs.TextFileView implements StateHo
 
             else if (Selection.isColumnVector(selection))
                 selection = Selection.normaliseVectorRange({
-                    from: {col: Math.max(selection.col + relCol)},
-                    to: {col: selection.col}
+                    from: {col: Math.max(0, selection.col + Math.min(0, relCol))},
+                    to: {col: Math.max(0, selection.col + Math.max(0, relCol))}
                 } satisfies Selection.ColumnVectorRange);
 
             else if (Selection.isColumnVectorRange(selection))
                 selection = Selection.normaliseVectorRange({
                     from: {col: Math.max(0, selection.from.col + Math.min(0, relCol))},
-                    to: {col: Math.max(0, selection.from.col + Math.max(0, relCol))},
+                    to: {col: Math.max(0, selection.to.col + Math.max(0, relCol))},
                 } satisfies Selection.ColumnVectorRange);
 
             this.state.dispatch("selection-change", prev => ({
