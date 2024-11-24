@@ -316,10 +316,13 @@ export function Spreadsheet(props: { sheet: StateHolder, settings: Settings }) {
                 sheet={sheet}
                 renderColumn={col => <div className={"column-title"}
                                           onDoubleClick={e => renameColumn(sheet, col)}
-                                          onMouseDown={() => setSelectionState({
-                                              startCell: {col: col.index},
-                                              currentCell: {col: col.index}
-                                          })}
+                                          onMouseDown={e => {
+                                              if (e.button == 0)
+                                                  setSelectionState({
+                                                      startCell: {col: col.index},
+                                                      currentCell: {col: col.index}
+                                                  });
+                                          }}
                                           onMouseEnter={e => setSelectionState(prev => prev ? ({
                                               ...prev,
                                               currentCell: {col: col.index}
@@ -328,10 +331,13 @@ export function Spreadsheet(props: { sheet: StateHolder, settings: Settings }) {
                 renderRow={row => <div className={"row-title"}
                                        onContextMenu={e => rowContextMenu(e, row, sheet)}>{row}</div>}>
                 {mkTableCell(sheet, (cell, addr) => <div className={"table-cell-inner"}
-                                                         onMouseDown={e => setSelectionState({
-                                                             startCell: addr,
-                                                             currentCell: addr
-                                                         })}
+                                                         onMouseDown={e => {
+                                                             if (e.button == 0)
+                                                                 setSelectionState({
+                                                                     startCell: addr,
+                                                                     currentCell: addr
+                                                                 });
+                                                         }}
                                                          onMouseEnter={e => setSelectionState(prev => prev ? ({
                                                              ...prev,
                                                              currentCell: addr
