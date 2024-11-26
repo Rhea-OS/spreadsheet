@@ -120,6 +120,8 @@ export default class CSVDocument {
                     row: address.row ?? cx.addr.row
                 };
 
+                console.log(cell);
+
                 const isFull = (x: Partial<Selection.Cell>): x is Required<Selection.Cell> => typeof x.row == 'number' && typeof x.col == 'number';
                 if (!isFull(cell))
                     return null;
