@@ -55,6 +55,7 @@ export function value(raw: string, sheet: CSVDocument): Value {
                 try {
                     return `${sheet.cx.evaluate(raw.slice(1), context)}`;
                 } catch (err) {
+                    console.error(err)
                     if (err)
                         return { err: err.toString() };
                     else
@@ -65,6 +66,8 @@ export function value(raw: string, sheet: CSVDocument): Value {
         }
     };
 }
+
+const andThen = <T, R>(cb: (x: T) => R, x?: T): R | null => x ? cb(x) : null;
 
 export interface DocumentProperties {
     frontMatter: FrontMatter;
@@ -110,10 +113,28 @@ export default class CSVDocument {
             getRow: (row: number) => this.raw[row],
             listColumns: () => this.documentProperties.columnTitles,
             listRows: () => this.raw.map(i => i.map(j => j.getRaw())),
-            query(address) {
-                console.log(this, address)
+
+            query: (cx: { addr: Selection.Cell }, address: expr.Address) => {
+                const cell: Partial<Selection.Cell> = {
+                    col: address.column ?? andThen(col => this.documentProperties.columnTitles.indexOf(col), address.column_name) ?? void 0,
+                    row: address.row ?? cx.addr.row
+                };
+
+                const isFull = (x: Partial<Selection.Cell>): x is Required<Selection.Cell> => typeof x.row == 'number' && typeof x.col == 'number';
+                if (!isFull(cell))
+                    return null;
+
+                const value = this.getValueAt(cell)?.getComputedValue(cx);
+
+                if (typeof value === 'object' && 'err' in value)
+                    throw value;
+
+                // TODO: handle units
+                return value;
             }
         }));
+
+            this.cx.pushGlobal("num", (input: string) => Number(input));
 
         const watchers: (() => void)[] = [];
 
