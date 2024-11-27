@@ -62,6 +62,14 @@ export default class SpreadsheetView extends obs.TextFileView implements StateHo
         });
     }
 
+    undo() {
+        this.doc.undo();
+    }
+
+    redo() {
+        this.doc.redo();
+    }
+
     getViewData(): string {
         return this.doc.getRaw()
     }

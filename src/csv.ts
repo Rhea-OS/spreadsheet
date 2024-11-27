@@ -3,6 +3,9 @@ import * as obs from "obsidian";
 import {DEFAULT_COLUMN_WIDTH, DEFAULT_ROW_HEIGHT} from "./components/table.js";
 import {Selection} from "./selection.js";
 
+export const MAX_UNDO_HISTORY = 128; // 128 diff frames
+export const UNDO_DEBOUNCE_TIMEOUT = 2000; // 2000ms
+
 export interface FrontMatter extends Record<string, any> {
     columnTypes?: string[],
     explicitTypes?: { [cell in string]: string },
@@ -30,17 +33,40 @@ export interface Value {
     getComputedValue(context: any): string | { err: string };
 }
 
+export type Change = {
+    value: Value,
+    old: string, // Technically, we could omit this value, but doing so would result in undo/redoing being O(n) rather than O(1)
+    new: string
+};
+export type Snapshot = {
+    timestamp: Date,
+    diff: Change[]
+};
+
 export function value(raw: string, sheet: CSVDocument): Value {
     const watches: ((raw: string) => void)[] = [];
 
     const isComputedValue = () => raw.startsWith("=")
 
-    return {
+    let value: Value;
+    return value = {
         document: () => sheet,
 
         isComputedValue: () => isComputedValue(),
         setRaw: data => {
+            if (data == raw)
+                return;
+
+            const change: Change = {
+                value,
+                new: data,
+                old: raw
+            };
+
             raw = data;
+
+            sheet.pushChange(change);
+
             for (const watch of watches)
                 watch(raw);
         },
@@ -87,6 +113,8 @@ export default class CSVDocument {
     raw: Value[][] = [[]];
 
     cx: expr.Context;
+    undoStack: Snapshot[] = [];
+    redoStack: Snapshot[] = [];
 
     #props: DocumentProperties = {
         frontMatter: {},
@@ -120,8 +148,6 @@ export default class CSVDocument {
                     row: address.row ?? cx.addr.row
                 };
 
-                console.log(cell);
-
                 const isFull = (x: Partial<Selection.Cell>): x is Required<Selection.Cell> => typeof x.row == 'number' && typeof x.col == 'number';
                 if (!isFull(cell))
                     return null;
@@ -147,6 +173,46 @@ export default class CSVDocument {
 
         this.onExternalChange = watcher => onExternalChange(watcher);
         this.notifyChange = () => watchers.forEach(i => i());
+    }
+
+    /// Inform the CSV Engine of a data change. Used for undo/redo chains
+    public pushChange(change: Change) {
+        this.redoStack.length = 0;
+
+        console.log(this.undoStack);
+
+        if (this.undoStack.at(-1)?.timestamp?.getTime() ?? 0 > new Date().getTime() - UNDO_DEBOUNCE_TIMEOUT)
+            this.undoStack.at(-1)!.diff.push(change);
+
+        else
+            this.undoStack.push({
+                timestamp: new Date(),
+                diff: [change]
+            });
+    }
+
+    public undo() {
+        const changes = this.undoStack.pop();
+        console.log("Undoing", changes);
+
+        if (!changes) return;
+
+        for (const value of changes.diff)
+            value.value.setRaw(value.old);
+
+        this.redoStack.push(changes);
+    }
+
+    public redo() {
+        const changes = this.redoStack.pop();
+        console.log("Redoing", changes);
+
+        if (!changes) return;
+
+        for (const value of changes.diff)
+            value.value.setRaw(value.new);
+
+        this.undoStack.push(changes);
     }
 
     public get documentProperties(): DocumentProperties {

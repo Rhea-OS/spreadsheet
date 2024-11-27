@@ -5,6 +5,7 @@ import SettingsTab, { default_settings, Settings } from "./settings/settingsTab.
 import inline from "./inline.js";
 import CSVDocument, {DocumentProperties} from "./csv.js";
 import StateManager from "@j-cake/jcake-utils/state";
+import {Editor, MarkdownFileInfo, MarkdownView} from "obsidian";
 
 export default class SpreadsheetPlugin extends obs.Plugin {
     settingsTab: SettingsTab | null = null;
@@ -32,6 +33,42 @@ export default class SpreadsheetPlugin extends obs.Plugin {
                     const tfile = await this.app.vault.create(newFile, 'Column 1;Column 2\n;');
                     await this.app.workspace.getLeaf(false).openFile(tfile);
                 }))));
+
+        this.addCommand({
+            checkCallback: (checking: boolean) => {
+                if (!checking)
+                    this.app.workspace.getActiveViewOfType(SpreadsheetView)?.doc.undo();
+
+                else
+                    return !!this.app.workspace.getActiveViewOfType(SpreadsheetView)
+            },
+            hotkeys: [{
+                key: "z",
+                modifiers: ['Ctrl']
+            }],
+            icon: "undo",
+            id: "undo",
+            name: "Undo",
+            repeatable: true
+        });
+
+        this.addCommand({
+            checkCallback: (checking: boolean) => {
+                if (!checking)
+                    this.app.workspace.getActiveViewOfType(SpreadsheetView)?.doc.redo();
+
+                else
+                    return !!this.app.workspace.getActiveViewOfType(SpreadsheetView)
+            },
+            hotkeys: [{
+                key: "y",
+                modifiers: ['Ctrl']
+            }],
+            icon: "redo",
+            id: "redo",
+            name: "Redo",
+            repeatable: true
+        });
     }
 
     private runCommand(command: string) {
@@ -47,6 +84,9 @@ export interface StateHolder {
     doc: CSVDocument,
     state: StateManager<EditorState>,
     app: obs.App,
+
+    undo(): void;
+    redo(): void;
 
     select(relCol: number, relRow: number, expand?: boolean): void,
 
