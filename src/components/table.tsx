@@ -79,6 +79,7 @@ export default function Table<Row extends TableRow>(props: TableProps<Row>) {
 
             {props.children.data.map((row, rowIndex) => <>
                 <div
+                    key={`row-header-${rowIndex}`}
                     className={["row", rowIndex % 2 == 0 ? '' : 'odd'].join(' ')}
                     style={{
                         gridColumn: 1,

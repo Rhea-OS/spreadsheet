@@ -5,7 +5,6 @@ import SettingsTab, { default_settings, Settings } from "./settings/settingsTab.
 import inline from "./inline.js";
 import CSVDocument, {DocumentProperties} from "./csv.js";
 import StateManager from "@j-cake/jcake-utils/state";
-import {Editor, MarkdownFileInfo, MarkdownView} from "obsidian";
 
 export default class SpreadsheetPlugin extends obs.Plugin {
     settingsTab: SettingsTab | null = null;
@@ -51,7 +50,6 @@ export default class SpreadsheetPlugin extends obs.Plugin {
             name: "Undo",
             repeatable: true
         });
-
         this.addCommand({
             checkCallback: (checking: boolean) => {
                 if (!checking)
@@ -67,6 +65,57 @@ export default class SpreadsheetPlugin extends obs.Plugin {
             icon: "redo",
             id: "redo",
             name: "Redo",
+            repeatable: true
+        });
+        this.addCommand({
+            checkCallback: (checking: boolean) => {
+                if (!checking)
+                    this.app.workspace.getActiveViewOfType(SpreadsheetView)?.cut();
+
+                else
+                    return !!this.app.workspace.getActiveViewOfType(SpreadsheetView)
+            },
+            hotkeys: [{
+                key: "x",
+                modifiers: ['Ctrl']
+            }],
+            icon: "cut",
+            id: "cut",
+            name: "Cut",
+            repeatable: true
+        });
+        this.addCommand({
+            checkCallback: (checking: boolean) => {
+                if (!checking)
+                    this.app.workspace.getActiveViewOfType(SpreadsheetView)?.copy();
+
+                else
+                    return !!this.app.workspace.getActiveViewOfType(SpreadsheetView)
+            },
+            hotkeys: [{
+                key: "c",
+                modifiers: ['Ctrl']
+            }],
+            icon: "copy",
+            id: "copy",
+            name: "Copy",
+            repeatable: true
+        });
+        this.addCommand({
+            checkCallback: (checking: boolean) => {
+                if (!checking)
+                    this.app.workspace.getActiveViewOfType(SpreadsheetView)?.paste();
+
+                else
+                    return !!this.app.workspace.getActiveViewOfType(SpreadsheetView)
+            },
+            hotkeys: [{
+                key: "v",
+                modifiers: ['Ctrl']
+            }],
+            icon: "paste",
+            id: "paste",
+            name: "Paste",
             repeatable: true
         });
     }
@@ -87,6 +136,11 @@ export interface StateHolder {
 
     undo(): void;
     redo(): void;
+    cut(): void;
+    copy(): void;
+    paste(): void;
+
+    getSelectionAsHTMLTable(): HTMLTableElement;
 
     select(relCol: number, relRow: number, expand?: boolean): void,
 

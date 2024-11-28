@@ -2,8 +2,6 @@ import * as expr from 'expression';
 import * as obs from "obsidian";
 import {DEFAULT_COLUMN_WIDTH, DEFAULT_ROW_HEIGHT} from "./components/table.js";
 import {Selection} from "./selection.js";
-import {Simulate} from "react-dom/test-utils";
-import mouseUp = Simulate.mouseUp;
 
 export const MAX_UNDO_HISTORY = 128; // 128 diff frames
 export const UNDO_DEBOUNCE_TIMEOUT = 2000; // 2000ms
@@ -317,8 +315,17 @@ export default class CSVDocument {
         }));
     }
 
-    getValueAt(cell: Selection.Cell): Value | null {
+    getValueAt(cell: Selection.Cell, create = false): Value | null {
+        if (create) {
+            for (let col = this.documentProperties.columnTitles.length; col <= cell.col; col++)
+                this.insertCol();
+
+            for (let row = this.raw.length; row <= cell.row; row++)
+                this.insertRow();
+        }
+
         return this.raw?.[cell.row]?.[cell.col] ?? null;
+
     }
 
     editFormat(col: number, format: string) {

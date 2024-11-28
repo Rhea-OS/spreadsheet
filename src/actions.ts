@@ -1,5 +1,6 @@
 import SpreadsheetView from "./spreadsheet.js";
-import { icons } from 'lucide-react';
+import {icons} from 'lucide-react';
+import {StateHolder} from "./main.js";
 
 export type Tool = {
     description: string;
@@ -8,13 +9,27 @@ export type Tool = {
 } & (Button | ViewportOptions);
 export type Button = {
     type: 'button',
-    onClick: (sheet: SpreadsheetView) => void,
+    onClick: (sheet: StateHolder) => void,
 };
 export type ViewportOptions = {
     type: 'viewport',
 }
 
 export const tools = {
+    'undo': {
+        type: 'button',
+        label: 'Undo',
+        description: 'Undo changes',
+        icon: 'Undo',
+        onClick: sheet => sheet.doc.undo()
+    },
+    'redo': {
+        type: 'button',
+        label: 'Redo',
+        description: 'Redo changes',
+        icon: 'Redo',
+        onClick: sheet => sheet.doc.redo()
+    },
     'copy': {
         type: 'button',
         label: 'Copy',

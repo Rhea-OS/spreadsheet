@@ -15,7 +15,7 @@ export interface Settings {
 }
 
 export const default_settings: Settings = {
-    toolbar: ['cut', 'copy', 'paste', null, 'viewOptions'],
+    toolbar: ['undo', 'redo', null, 'cut', 'copy', 'paste', null, 'viewOptions'],
     units,
     dataTypes: [{
         name: 'Date',

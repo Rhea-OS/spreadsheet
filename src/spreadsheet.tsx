@@ -62,6 +62,75 @@ export default class SpreadsheetView extends obs.TextFileView implements StateHo
         });
     }
 
+    cut(): void {
+        const selected = this.getSelectionAsHTMLTable();
+        navigator.clipboard.write([new ClipboardItem({
+            "text/html": new Blob([selected.outerHTML], {type: "text/html"}),
+            "text/plain": new Blob([selected.outerHTML], {type: "text/plain"}),
+        })]);
+
+        for (const i of Selection.iterCells(this.state.get().selection))
+            this.doc.getValueAt(i)?.setRaw("");
+
+        this.state.dispatch("selection-change", {
+            selection: [],
+            activeCell: null
+        });
+    }
+
+    copy(): void {
+        const selected = this.getSelectionAsHTMLTable();
+        navigator.clipboard.write([new ClipboardItem({
+            "text/html": new Blob([selected.outerHTML], {type: "text/html"}),
+            "text/plain": new Blob([selected.outerHTML], {type: "text/plain"}),
+        })]);
+    }
+
+    paste(): void {
+        navigator.clipboard.read()
+            .then(async items => {
+                for (const item of items) {
+                    const html = await item.getType("text/html")
+                        ?.then(blob => blob.text())
+                        .catch(err => null);
+
+                    if (!html)
+                        continue;
+
+                    const table = obs.sanitizeHTMLToDom(html).querySelector("table");
+
+                    const rows: string[][] = [];
+                    for (const rowGroup of table?.tBodies ?? [])
+                        for (const row of rowGroup.querySelectorAll("tr"))
+                            rows.push([...row.querySelectorAll("td").values()].map(i => i.getText()))
+
+                    const pasteAt = Selection.topLeft(this.state.get().selection)!;
+
+                    if (this.state.get().selection.reduce((a, i) => Selection.area(i) + a, 0) <= 1)
+                        for (const [row, i] of rows.entries())
+                            for (const [col, cell] of i.entries()) {
+                                const value = this.doc.getValueAt({
+                                    row: row + pasteAt.row,
+                                    col: col + pasteAt.col
+                                }, true);
+
+                                if (value && typeof cell == "string")
+                                    value.setRaw(cell);
+                            }
+
+                    else for (const cell of Selection.iterCells(this.state.get().selection)) {
+                        const value = this.doc.getValueAt(cell, true);
+
+                        const raw = rows[cell.row - pasteAt.row][cell.col - pasteAt.col];
+
+                        if (value && typeof raw == "string")
+                            value.setRaw(raw);
+                    }
+
+                }
+            });
+    }
+
     undo() {
         this.doc.undo();
     }
@@ -211,6 +280,42 @@ export default class SpreadsheetView extends obs.TextFileView implements StateHo
 
     clear(): void {
         this.doc.clear();
+    }
+
+    getSelectionAsHTMLTable(): HTMLTableElement {
+        const table = document.createElement("table");
+
+        const columns = new Set<string>();
+        const rows: Record<string, string>[] = [];
+
+        for (const cell of Selection.iterCells(this.state.get().selection)) {
+            columns.add(this.documentProperties.columnTitles[cell.col]);
+
+            if (!rows[cell.row])
+                rows.push({
+                    [this.documentProperties.columnTitles[cell.col]]: this.doc.getValueAt(cell)?.getRaw()!
+                });
+            else
+                rows[cell.row][this.documentProperties.columnTitles[cell.col]] = this.doc.getValueAt(cell)?.getRaw()!;
+        }
+
+        const header = table.createTHead()
+            .insertRow(0);
+
+        for (const col of columns.keys())
+            header.insertCell()
+                .setText(col);
+
+        const body = table.createTBody();
+        for (const row of rows) {
+            const tr = body.insertRow();
+
+            for (const cell of columns.keys())
+                tr.insertCell()
+                    .setText(row[cell]);
+        }
+
+        return table;
     }
 }
 
@@ -392,7 +497,7 @@ export function EditableTableCell(props: { cell: Value, edit?: boolean, sheet: S
                })}/>
     </> : <>
         <span>
-            {computedValue(props.cell, { addr: props.addr })}
+            {computedValue(props.cell, {addr: props.addr})}
         </span>
     </>}</div>
 }
