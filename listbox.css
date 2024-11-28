@@ -35,6 +35,10 @@
     color: var(--text-on-accent);
 }
 
+.list-item hr {
+    margin: 0;
+}
+
 .list-box-viewport {
     flex: 1;
 }
