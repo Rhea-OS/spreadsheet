@@ -2,6 +2,8 @@ import * as expr from 'expression';
 import * as obs from "obsidian";
 import {DEFAULT_COLUMN_WIDTH, DEFAULT_ROW_HEIGHT} from "./components/table.js";
 import {Selection} from "./selection.js";
+import {Simulate} from "react-dom/test-utils";
+import mouseUp = Simulate.mouseUp;
 
 export const MAX_UNDO_HISTORY = 128; // 128 diff frames
 export const UNDO_DEBOUNCE_TIMEOUT = 2000; // 2000ms
@@ -24,6 +26,7 @@ export interface Value {
     isComputedValue: () => boolean,
 
     setRaw(raw: string): void,
+
     getRaw(): string,
 
     onChange: (callback: (raw: string) => void) => () => void,
@@ -53,7 +56,7 @@ export function value(raw: string, sheet: CSVDocument): Value {
         document: () => sheet,
 
         isComputedValue: () => isComputedValue(),
-        setRaw: data => {
+        setRaw: (data, noUpdateHistory = false) => {
             if (data == raw)
                 return;
 
@@ -65,7 +68,8 @@ export function value(raw: string, sheet: CSVDocument): Value {
 
             raw = data;
 
-            sheet.pushChange(change);
+            if (!noUpdateHistory)
+                sheet.pushChange(change);
 
             for (const watch of watches)
                 watch(raw);
@@ -83,9 +87,9 @@ export function value(raw: string, sheet: CSVDocument): Value {
                 } catch (err) {
                     console.error(err)
                     if (err)
-                        return { err: err.toString() };
+                        return {err: err.toString()};
                     else
-                        return { err: 'Unknown Error' };
+                        return {err: 'Unknown Error'};
                 }
             else
                 return raw;
@@ -162,7 +166,7 @@ export default class CSVDocument {
             }
         }));
 
-            this.cx.pushGlobal("num", (input: string) => Number(input));
+        this.cx.pushGlobal("num", (input: string) => Number(input));
 
         const watchers: (() => void)[] = [];
 
@@ -179,12 +183,18 @@ export default class CSVDocument {
     public pushChange(change: Change) {
         this.redoStack.length = 0;
 
-        console.log(this.undoStack);
+        const last = this.undoStack.at(-1);
 
-        if (this.undoStack.at(-1)?.timestamp?.getTime() ?? 0 > new Date().getTime() - UNDO_DEBOUNCE_TIMEOUT)
-            this.undoStack.at(-1)!.diff.push(change);
+        if (last && (new Date().getTime() - (last?.timestamp?.getTime() ?? 0) < UNDO_DEBOUNCE_TIMEOUT)) {
+            if (this.undoStack.length > MAX_UNDO_HISTORY)
+                this.undoStack.shift();
 
-        else
+            const latestChange = last.diff.find(i => i.value == change.value);
+            if (latestChange)
+                latestChange.new = change.new;
+            else
+                last?.diff.push(change);
+        } else
             this.undoStack.push({
                 timestamp: new Date(),
                 diff: [change]
@@ -193,24 +203,22 @@ export default class CSVDocument {
 
     public undo() {
         const changes = this.undoStack.pop();
-        console.log("Undoing", changes);
 
         if (!changes) return;
 
         for (const value of changes.diff)
-            value.value.setRaw(value.old);
+            (value.value.setRaw as (data: string, noUpdateHistory?: boolean) => void)(value.old, true);
 
         this.redoStack.push(changes);
     }
 
     public redo() {
         const changes = this.redoStack.pop();
-        console.log("Redoing", changes);
 
         if (!changes) return;
 
         for (const value of changes.diff)
-            value.value.setRaw(value.new);
+            (value.value.setRaw as (data: string, noUpdateHistory?: boolean) => void)(value.new, true);
 
         this.undoStack.push(changes);
     }
@@ -282,7 +290,7 @@ export default class CSVDocument {
             }));
 
         const prevRaw = [...this.raw];
-        const prevProps = { ...this.documentProperties };
+        const prevProps = {...this.documentProperties};
         this.raw = [];
 
         for (const [cells, row] of rows.map((i, row) => [i.split(separator), row] as const)) {
