@@ -89,45 +89,57 @@ export default class SpreadsheetView extends obs.TextFileView implements StateHo
     paste(): void {
         navigator.clipboard.read()
             .then(async items => {
-                for (const item of items) {
-                    const html = await item.getType("text/html")
-                        ?.then(blob => blob.text())
-                        .catch(err => null);
+                if (this.state.get().activeCell) {
+                    const text = await Promise.all(items.map(i => i.getType("text/plain").then(blob => blob.text())))
+                        .then(blobs => blobs.join(''))
 
-                    if (!html)
-                        continue;
+                    const selection = window.getSelection();
 
-                    const table = obs.sanitizeHTMLToDom(html).querySelector("table");
+                    if (!selection)
+                        return;
 
-                    const rows: string[][] = [];
-                    for (const rowGroup of table?.tBodies ?? [])
-                        for (const row of rowGroup.querySelectorAll("tr"))
-                            rows.push([...row.querySelectorAll("td").values()].map(i => i.getText()))
+                    selection.deleteFromDocument();
+                    selection.getRangeAt(0).insertNode(document.createTextNode(text));
+                } else
+                    for (const item of items) {
+                        const html = await item.getType("text/html")
+                            ?.then(blob => blob.text())
+                            .catch(err => null);
 
-                    const pasteAt = Selection.topLeft(this.state.get().selection)!;
+                        if (!html)
+                            continue;
 
-                    if (this.state.get().selection.reduce((a, i) => Selection.area(i) + a, 0) <= 1)
-                        for (const [row, i] of rows.entries())
-                            for (const [col, cell] of i.entries()) {
-                                const value = this.doc.getValueAt({
-                                    row: row + pasteAt.row,
-                                    col: col + pasteAt.col
-                                }, true);
+                        const table = obs.sanitizeHTMLToDom(html).querySelector("table");
 
-                                if (value && typeof cell == "string")
-                                    value.setRaw(cell);
-                            }
+                        const rows: string[][] = [];
+                        for (const rowGroup of table?.tBodies ?? [])
+                            for (const row of rowGroup.querySelectorAll("tr"))
+                                rows.push([...row.querySelectorAll("td").values()].map(i => i.getText()))
 
-                    else for (const cell of Selection.iterCells(this.state.get().selection)) {
-                        const value = this.doc.getValueAt(cell, true);
+                        const pasteAt = Selection.topLeft(this.state.get().selection)!;
 
-                        const raw = rows[cell.row - pasteAt.row][cell.col - pasteAt.col];
+                        if (this.state.get().selection.reduce((a, i) => Selection.area(i) + a, 0) <= 1)
+                            for (const [row, i] of rows.entries())
+                                for (const [col, cell] of i.entries()) {
+                                    const value = this.doc.getValueAt({
+                                        row: row + pasteAt.row,
+                                        col: col + pasteAt.col
+                                    }, true);
 
-                        if (value && typeof raw == "string")
-                            value.setRaw(raw);
+                                    if (value && typeof cell == "string")
+                                        value.setRaw(cell);
+                                }
+
+                        else for (const cell of Selection.iterCells(this.state.get().selection)) {
+                            const value = this.doc.getValueAt(cell, true);
+
+                            const raw = rows[cell.row - pasteAt.row][cell.col - pasteAt.col];
+
+                            if (value && typeof raw == "string")
+                                value.setRaw(raw);
+                        }
+
                     }
-
-                }
             });
     }
 
@@ -468,12 +480,17 @@ export function EditableTableCell(props: { cell: Value, edit?: boolean, sheet: S
 
     props.cell.onChange(content => setContent(content));
 
-    const ref = React.createRef<HTMLInputElement>();
+    const ref = React.createRef<HTMLDivElement>();
 
     React.useEffect(() => {
         if (props.edit) {
             ref.current?.focus();
-            ref.current?.select();
+            // ref.current?.select();
+
+            const range = document.createRange();
+            range.selectNodeContents(ref.current!);
+
+            window.getSelection()?.addRange(range);
 
             props.sheet.state.dispatch("selection-change", {
                 activeCell: props.addr
@@ -488,13 +505,21 @@ export function EditableTableCell(props: { cell: Value, edit?: boolean, sheet: S
                     selection: [props.addr],
                     activeCell: props.addr
                 })}>{props.edit ? <>
-        <input ref={ref}
-               type={"text"}
-               value={content}
-               onChange={e => setContent(e.target.value)}
-               onBlur={() => props.sheet.state.dispatch("selection-change", {
-                   activeCell: null
-               })}/>
+        <div contentEditable={"true"}
+             ref={ref}
+            onChange={e => setContent(e.target.innerText)}
+             onBlur={() => props.sheet.state.dispatch("selection-change", {
+                 activeCell: null
+             })}>
+            {content}
+        </div>
+        {/*<input ref={ref}*/}
+        {/*       type={"text"}*/}
+        {/*       value={content}*/}
+        {/*       onChange={e => setContent(e.target.value)}*/}
+        {/*       onBlur={() => props.sheet.state.dispatch("selection-change", {*/}
+        {/*           activeCell: null*/}
+        {/*       })}/>*/}
     </> : <>
         <span>
             {computedValue(props.cell, {addr: props.addr})}

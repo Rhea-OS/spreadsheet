@@ -56,7 +56,7 @@ export default class SpreadsheetPlugin extends obs.Plugin {
                     this.app.workspace.getActiveViewOfType(SpreadsheetView)?.doc.redo();
 
                 else
-                    return !!this.app.workspace.getActiveViewOfType(SpreadsheetView)
+                    return !!this.app.workspace.getActiveViewOfType(SpreadsheetView);
             },
             hotkeys: [{
                 key: "y",
@@ -73,7 +73,7 @@ export default class SpreadsheetPlugin extends obs.Plugin {
                     this.app.workspace.getActiveViewOfType(SpreadsheetView)?.cut();
 
                 else
-                    return !!this.app.workspace.getActiveViewOfType(SpreadsheetView)
+                    return !!this.app.workspace.getActiveViewOfType(SpreadsheetView);
             },
             hotkeys: [{
                 key: "x",
@@ -90,7 +90,7 @@ export default class SpreadsheetPlugin extends obs.Plugin {
                     this.app.workspace.getActiveViewOfType(SpreadsheetView)?.copy();
 
                 else
-                    return !!this.app.workspace.getActiveViewOfType(SpreadsheetView)
+                    return !!this.app.workspace.getActiveViewOfType(SpreadsheetView);
             },
             hotkeys: [{
                 key: "c",
@@ -107,7 +107,7 @@ export default class SpreadsheetPlugin extends obs.Plugin {
                     this.app.workspace.getActiveViewOfType(SpreadsheetView)?.paste();
 
                 else
-                    return !!this.app.workspace.getActiveViewOfType(SpreadsheetView)
+                    return !!this.app.workspace.getActiveViewOfType(SpreadsheetView);
             },
             hotkeys: [{
                 key: "v",
