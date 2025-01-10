@@ -1,0 +1,80 @@
+@top Formula { expression }
+
+expression {
+    literal |
+    Access |
+    Call |
+    operation |
+    List |
+    AssociativeArray |
+    bracketedExpression
+}
+
+literal[@isGroup=Literal] {
+    Number |
+    Boolean |
+    Address |
+    key
+}
+
+key { Name | String }
+
+Access { literal | bracketedExpression "." key }
+
+Call { literal | bracketedExpression "(" delimited<expression> ")" }
+
+operation { expression Op expression }
+
+List { "[" delimited<expression> "]" }
+
+AssociativeArray { "[" delimited<(key "=" expression)> "]" }
+
+delimited<body> {
+    (
+        body
+        ("," body)*
+    )?
+}
+
+bracketedExpression { "(" expression ")" }
+
+@tokens {
+
+    alpha { $[_\u{a1}-\u{10ffff}] }
+    alphanumeric { $[_\u{a1}-\u{10ffff}\d] }
+
+    Boolean {
+        "true" | "false"
+    }
+
+    Name {
+        alpha alphanumeric*
+    }
+
+    Number {
+        ("-"? $[0-9]+ ) |
+        ("-"? "0x" $[0-9a-fA-Z_]+) |
+        ("-"? "0o" $[0-7]+) |
+        ("-"? "0b" $[01]+) |
+        ("-"? $[0-9]+ "." $[0-9]*)
+    }
+
+    String { '"' (!["\\] | "\\" _)* '"' }
+    Address { '{' (![}])* '}' }
+
+    Op {(
+        '+' |
+        '-' |
+        '*' |
+        '%' |
+        '^' |
+        '>' |
+        '<' |
+        '!' |
+        '&&' |
+        '||' |
+        '==' |
+        '<=' |
+        '>='
+    )}
+}

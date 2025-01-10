@@ -4,6 +4,10 @@
     "version": "0.1.0",
     "type": "module",
     "dependencies": {
+        "@codemirror/autocomplete": "latest",
+        "@codemirror/language": "^6.10.8",
+        "@codemirror/state": "latest",
+        "@codemirror/view": "latest",
         "@j-cake/jcake-utils": "latest",
         "@react-hook/event": "latest",
         "@react-hook/mouse-position": "latest",
@@ -13,8 +17,8 @@
         "expression": "link:../expression/expression-js/build/pkg",
         "lucide-react": "latest",
         "luxon": "latest",
-        "react": "0.0.0-experimental-64f89510-20241119",
-        "react-dom": "0.0.0-experimental-64f89510-20241119"
+        "react": "latest",
+        "react-dom": "latest"
     },
     "scripts": {
         "build": "build phony:all phony:install"
@@ -27,7 +31,8 @@
         "builder": "link:../../builder",
         "chalk": "latest",
         "obsidian": "latest",
-        "typescript": "latest"
+        "typescript": "latest",
+        "unplugin-lezer": "latest"
     },
     "imports": {
         "#app": "./build/index.js",

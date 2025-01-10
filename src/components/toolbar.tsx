@@ -10,7 +10,7 @@ export default function Toolbar(props: { settings: Settings, sheet: StateHolder 
         {props.settings.toolbar
             .map((item, a) => typeof item == 'string' ?
                 toolRenderers[Tools[item].type](Tools[item] as any, props.sheet) :
-                <span className={"gap"} key={`toolbar-spacer-${arguments}`}/> )}
+                <span className={"gap"} key={`toolbar-spacer-${a}`}/> )}
     </div>
 }
 

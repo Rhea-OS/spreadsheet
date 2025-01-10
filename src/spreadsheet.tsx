@@ -13,6 +13,7 @@ import {computedValue} from "./inline.js";
 import {Selection} from "./selection.js";
 import {columnContextMenu, rowContextMenu} from "./contextMenu.js";
 import {renameColumn} from "./renameColumn.js";
+import {EditableTableCell} from "./components/formula-editor.js";
 
 export const SPREADSHEET_VIEW = "spreadsheet-view";
 
@@ -457,7 +458,7 @@ export function Spreadsheet(props: { sheet: StateHolder, settings: Settings }) {
                                        onContextMenu={e => rowContextMenu(e, row, sheet)}>{row}</div>}>
                 {mkTableCell(sheet, (cell, addr) => <div className={"table-cell-inner"}
                                                          onMouseDown={e => {
-                                                             if (e.button == 0)
+                                                             if (e.button == 0 && !active)
                                                                  setSelectionState({
                                                                      startCell: addr,
                                                                      currentCell: addr
@@ -473,58 +474,6 @@ export function Spreadsheet(props: { sheet: StateHolder, settings: Settings }) {
             </Table>
         </div>
     </section>;
-}
-
-export function EditableTableCell(props: { cell: Value, edit?: boolean, sheet: StateHolder, addr: Selection.Cell }) {
-    const [content, setContent] = React.useState(props.cell.getRaw());
-
-    props.cell.onChange(content => setContent(content));
-
-    const ref = React.createRef<HTMLDivElement>();
-
-    React.useEffect(() => {
-        if (props.edit) {
-            ref.current?.focus();
-            // ref.current?.select();
-
-            const range = document.createRange();
-            range.selectNodeContents(ref.current!);
-
-            window.getSelection()?.addRange(range);
-
-            props.sheet.state.dispatch("selection-change", {
-                activeCell: props.addr
-            });
-        }
-    }, [props.edit]);
-
-    React.useEffect(() => props.cell.setRaw(content), [content]);
-
-    return <div className={"table-cell-inner"}
-                onDoubleClick={_ => props.sheet.state.dispatch("selection-change", {
-                    selection: [props.addr],
-                    activeCell: props.addr
-                })}>{props.edit ? <>
-        <div contentEditable={"true"}
-             ref={ref}
-            onChange={e => setContent(e.target.innerText)}
-             onBlur={() => props.sheet.state.dispatch("selection-change", {
-                 activeCell: null
-             })}>
-            {content}
-        </div>
-        {/*<input ref={ref}*/}
-        {/*       type={"text"}*/}
-        {/*       value={content}*/}
-        {/*       onChange={e => setContent(e.target.value)}*/}
-        {/*       onBlur={() => props.sheet.state.dispatch("selection-change", {*/}
-        {/*           activeCell: null*/}
-        {/*       })}/>*/}
-    </> : <>
-        <span>
-            {computedValue(props.cell, {addr: props.addr})}
-        </span>
-    </>}</div>
 }
 
 export function toGroup({startCell, currentCell}: {

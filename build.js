@@ -2,6 +2,7 @@ import fss from "node:fs";
 import fs from "node:fs/promises";
 import cp from "node:child_process";
 import {chalk, esbuild, is_source, log, Path, util} from 'builder';
+import lezer from 'unplugin-lezer/esbuild'
 
 export default {
     async "build:plugin"(config) {
@@ -21,6 +22,7 @@ export default {
                 ".ttf": "copy",
                 ".wasm": "binary"
             },
+            plugins: [lezer({})],
             external: ['electron', 'obsidian'],
             outdir: config.out.path
         });
