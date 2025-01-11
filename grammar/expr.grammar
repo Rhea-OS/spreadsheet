@@ -1,4 +1,14 @@
+@detectDelim
 @top Formula { expression }
+
+@precedence {
+    eq @left,
+    bin @left,
+    comp @left,
+    add @left,
+    mul @left,
+    exp @left
+}
 
 expression {
     literal |
@@ -13,30 +23,47 @@ expression {
 literal[@isGroup=Literal] {
     Number |
     Boolean |
+    NamedColumn |
     Address |
     key
 }
 
 key { Name | String }
 
-Access { literal | bracketedExpression "." key }
+Access { ~key (literal | bracketedExpression) "." key }
 
-Call { literal | bracketedExpression "(" delimited<expression> ")" }
+Call { ~key (literal | bracketedExpression) "(" delimited<expression> ")" }
 
-operation { expression Op expression }
-
-List { "[" delimited<expression> "]" }
-
-AssociativeArray { "[" delimited<(key "=" expression)> "]" }
-
-delimited<body> {
-    (
-        body
-        ("," body)*
-    )?
+operation {
+    expression !eq ("==" | "!=") expression |
+    expression !bin ("&&" | "||" | "!") expression |
+    expression !comp ("<" | ">") expression |
+    expression !add ("+" | "-") expression |
+    expression !mul ("*" | "/" | "%") expression |
+    expression !exp ("^") expression
 }
 
+List { "[" ~obj delimited<expression> "]" }
+
+AssociativeArray { "[" ~obj delimited<(key "=" expression)> "]" }
+
+delimited<body> { ( body ("," body)* )? }
+
 bracketedExpression { "(" expression ")" }
+
+@local tokens {
+    strEnd { '"' }
+    strEscape { '\\' ![u] }
+    strUnicodeEscape { '\\u{' _* '}' }
+
+    @else content
+}
+
+@skip {} {
+    NamedColumn { ~col "{{" content? "}}" }
+    Address { ~col "{" content? "}" }
+    String { '"' (content | strEscape | strUnicodeEscape)* strEnd }
+}
 
 @tokens {
 
@@ -58,23 +85,4 @@ bracketedExpression { "(" expression ")" }
         ("-"? "0b" $[01]+) |
         ("-"? $[0-9]+ "." $[0-9]*)
     }
-
-    String { '"' (!["\\] | "\\" _)* '"' }
-    Address { '{' (![}])* '}' }
-
-    Op {(
-        '+' |
-        '-' |
-        '*' |
-        '%' |
-        '^' |
-        '>' |
-        '<' |
-        '!' |
-        '&&' |
-        '||' |
-        '==' |
-        '<=' |
-        '>='
-    )}
 }

@@ -224,3 +224,56 @@ input[type="text"].column-title-rename {
     display: flex;
     justify-content: center;
 }
+
+.formula-editor {
+    flex: 1;
+    color: var(--code-normal);
+}
+
+.formula-editor .text {
+    color: var(--code-string);
+}
+
+.formula-editor .operator {
+    color: var(--code-operator);
+}
+
+.formula-editor .name {
+    color: var(--code-value);
+}
+
+.formula-editor .addr {
+    color: var(--color-red);
+}
+
+.formula-editor .addr:is(:nth-of-type(16n+1), :nth-of-type(16n+2)) {
+    color: var(--color-red);
+}
+
+.formula-editor .addr:is(:nth-of-type(16n+3), :nth-of-type(16n+4)) {
+    color: var(--color-orange);
+}
+
+.formula-editor .addr:is(:nth-of-type(16n+5), :nth-of-type(16n+6)) {
+    color: var(--color-yellow);
+}
+
+.formula-editor .addr:is(:nth-of-type(16n+7), :nth-of-type(16n+8)) {
+    color: var(--color-green);
+}
+
+.formula-editor .addr:is(:nth-of-type(16n+9), :nth-of-type(16n+10)) {
+    color: var(--color-cyan);
+}
+
+.formula-editor .addr:is(:nth-of-type(16n+11), :nth-of-type(16n+12)) {
+    color: var(--color-blue);
+}
+
+.formula-editor .addr:is(:nth-of-type(16n+13), :nth-of-type(16n+14)) {
+    color: var(--color-purple);
+}
+
+.formula-editor .addr:is(:nth-of-type(16n+15), :nth-of-type(16n+16)) {
+    color: var(--color-pink);
+}

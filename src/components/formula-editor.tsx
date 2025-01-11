@@ -3,16 +3,16 @@ import * as obs from 'obsidian';
 import { EditorView } from '@codemirror/view';
 import { EditorState } from '@codemirror/state';
 import {autocompletion, closeBrackets} from "@codemirror/autocomplete";
-import {defineLanguageFacet, Language} from '@codemirror/language';
+import {defineLanguageFacet, HighlightStyle, LRLanguage, syntaxHighlighting} from '@codemirror/language';
+import {foldNodeProp, foldInside, indentNodeProp} from "@codemirror/language"
+import {styleTags, tags as t} from "@lezer/highlight"
 
 import {Value} from "../csv.js";
 import {StateHolder} from "../main.js";
 import {Selection} from "../selection.js";
 import {computedValue} from "../inline.js";
 
-import * as grammar from '../../grammar/expr.grammar';
-
-console.log(grammar);
+import {parser} from '../../grammar/expr.grammar';
 
 const toIter = function* (walker: TreeWalker): Generator<Node> {
     for (let node = walker.nextNode(); node; node = walker.nextNode())
@@ -33,7 +33,32 @@ export function EditableTableCell(props: { cell: Value, edit?: boolean, sheet: S
     </>}</div>
 }
 
-export const highlighter = new Language(defineLanguageFacet(), );
+export const highlighter = LRLanguage.define({
+    parser: parser.configure({
+        props: [
+            styleTags({
+                Name: t.variableName,
+                Boolean: t.bool,
+                String: t.string,
+                Address: t.labelName,
+                NamedColumn: t.labelName,
+            }),
+            indentNodeProp.add({
+                Application: context => context.column(context.node.from) + context.unit
+            }),
+            foldNodeProp.add({
+                Application: foldInside
+            })
+        ]
+    }),
+    languageData: {}
+});
+
+export const highlight = HighlightStyle.define([
+    { tag: t.labelName, fontStyle: "italic", class: "addr" },
+    { tag: t.string, fontStyle: "italic", class: "text" },
+    { tag: t.operator, class: "operator" }
+])
 
 export function FormulaEditor(props: { cell: Value }) {
     const editor = React.createRef<HTMLDivElement>();
@@ -48,7 +73,8 @@ export function FormulaEditor(props: { cell: Value }) {
                 doc: props.cell.getRaw(),
                 extensions: [
                     closeBrackets(),
-                    highlighter.extension
+                    highlighter.extension,
+                    syntaxHighlighting(highlight)
                 ],
             })
         })
