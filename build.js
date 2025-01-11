@@ -22,7 +22,9 @@ export default {
                 ".ttf": "copy",
                 ".wasm": "binary"
             },
-            plugins: [lezer({})],
+            plugins: [lezer({
+
+            })],
             external: ['electron', 'obsidian'],
             outdir: config.out.path
         });

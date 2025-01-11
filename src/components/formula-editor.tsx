@@ -56,8 +56,7 @@ export const highlighter = LRLanguage.define({
 
 export const highlight = HighlightStyle.define([
     { tag: t.labelName, fontStyle: "italic", class: "addr" },
-    { tag: t.string, fontStyle: "italic", class: "text" },
-    { tag: t.operator, class: "operator" }
+    { tag: t.string, fontStyle: "italic", class: "text" }
 ])
 
 export function FormulaEditor(props: { cell: Value }) {
@@ -74,10 +73,11 @@ export function FormulaEditor(props: { cell: Value }) {
                 extensions: [
                     closeBrackets(),
                     highlighter.extension,
-                    syntaxHighlighting(highlight)
+                    syntaxHighlighting(highlight),
+                    EditorView.updateListener.of(update => props.cell.setRaw(update.state.doc.toString()))
                 ],
-            })
-        })
+            }),
+        });
 
         return () => {
             props.cell.setRaw(ed.state.doc.toString());

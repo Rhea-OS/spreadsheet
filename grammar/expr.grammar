@@ -23,9 +23,9 @@ expression {
 literal[@isGroup=Literal] {
     Number |
     Boolean |
-    NamedColumn |
+    key |
     Address |
-    key
+    NamedColumn
 }
 
 key { Name | String }
@@ -52,17 +52,35 @@ delimited<body> { ( body ("," body)* )? }
 bracketedExpression { "(" expression ")" }
 
 @local tokens {
-    strEnd { '"' }
-    strEscape { '\\' ![u] }
-    strUnicodeEscape { '\\u{' _* '}' }
+    stringEnd { '"' }
+    stringEscape { '\\' ![u] }
+    stringUnicode { '\\u{' ![}]* '}' }
 
-    @else content
+    @else stringContents
 }
 
 @skip {} {
-    NamedColumn { ~col "{{" content? "}}" }
-    Address { ~col "{" content? "}" }
-    String { '"' (content | strEscape | strUnicodeEscape)* strEnd }
+    String { '"' (stringEscape | stringUnicode | stringContents)* stringEnd }
+}
+
+@local tokens {
+    addressEnd { '}' }
+
+    @else addressContents
+}
+
+@skip {} {
+    Address { ~col '{' addressContents* addressEnd }
+}
+
+@local tokens {
+    namedColumnEnd { '}}' }
+
+    @else namedColumnContents
+}
+
+@skip {} {
+    NamedColumn { ~col '{{' namedColumnContents* namedColumnEnd }
 }
 
 @tokens {
