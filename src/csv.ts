@@ -70,25 +70,24 @@ export function value(raw: string, sheet: CSVDocument): Value {
 
 		isComputedValue: () => isComputedValue(),
 		setRaw: (data, noUpdateHistory = false) => {
-			if (data == raw)
-				return;
+			if (data !== raw) {
+				const change: Change = {
+					value,
+					new: data,
+					old: raw
+				};
 
-			const change: Change = {
-				value,
-				new: data,
-				old: raw
-			};
+				if (!noUpdateHistory)
+					sheet.pushChange(change);
+
+				for (const watch of watches)
+					watch(raw);
+			}
 
 			raw = data;
 
 			onChangeOnce.splice(0, onChangeOnce.length)
 				.forEach(i => i(raw));
-
-			if (!noUpdateHistory)
-				sheet.pushChange(change);
-
-			for (const watch of watches)
-				watch(raw);
 		},
 		getRaw: () => raw,
 
@@ -105,11 +104,14 @@ export function value(raw: string, sheet: CSVDocument): Value {
 		getComputedValue(addr: Selection.Cell): string | { err: string } {
 			if (!prev.value || prev.raw != raw)
 				try {
-					return prev.value = isComputedValue() ? `${sheet.cx.evaluate(raw.slice(1), {
-						dependent_address: addr,
-						dependent: value,
-						dependencies: []
-					})}` : raw;
+					return Object.assign(prev, {
+						raw,
+						value: isComputedValue() ? `${sheet.cx.evaluate(raw.slice(1), {
+							dependent_address: addr,
+							dependent: value,
+							dependencies: []
+						})}` : raw
+					}).value;
 				} catch (err) {
 					console.error(err);
 					return { err: err ? err.toString() : 'Unknown Error' };
