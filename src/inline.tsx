@@ -1,6 +1,6 @@
 import * as dom from "react-dom/client";
 
-import CSVDocument, {Value} from "./csv.js";
+import CSVDocument, {CellDependencyContext, Value} from "./csv.js";
 import React from "react";
 import SpreadsheetPlugin, {StateHolder} from "./main.js";
 import {MarkdownPostProcessorContext} from "obsidian";
@@ -8,6 +8,7 @@ import StateManager from "@j-cake/jcake-utils/state";
 import {EditorState} from "./spreadsheet.js";
 import {Settings} from "./settings/settingsTab.js";
 import Table, {columnHeadersFromDocument, mkTableCell} from "./components/table.js";
+import {Selection} from "./selection.js";
 
 export default async function inline(this: SpreadsheetPlugin, source: string, container: HTMLElement, cx: MarkdownPostProcessorContext) {
     let doc = new CSVDocument();
@@ -50,14 +51,14 @@ export function ReadonlyUi(props: {
         renderRow={row => <span className={"row-title"}>{row}</span>}>
         {mkTableCell(props.sheet, (col, addr) => <div className={"table-cell-inner"}>
             <span>
-                {computedValue(col, { addr })}
+                {computedValue(col, addr)}
             </span>
         </div>)}
     </Table>
 }
 
-export function computedValue(col: Value, cx: any): React.ReactNode {
-    const value = col.getComputedValue(cx);
+export function computedValue(col: Value, addr: Selection.Cell): React.ReactNode {
+    const value = col.getComputedValue(addr);
 
     if (typeof value == 'string')
         if (col.isComputedValue())

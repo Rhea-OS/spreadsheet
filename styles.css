@@ -49,10 +49,10 @@
     justify-content: stretch;
 }
 
-.table-header-cell, .top-left-corner {
-    font-weight: bold;
-    background: var(--table-header-background);
+.table-header-cell, .top-left-corner, .row {
+    background: var(--color-base-00);
     /*padding: var(--size-2-2) var(--size-4-2);*/
+    font-weight: 300;
 }
 
 .top-left-corner {
@@ -145,6 +145,8 @@ input[type="text"].column-title-rename {
 .top-left-corner {
     grid-row: 1;
     grid-column: 1;
+    z-index: 2000;
+    background: var(--color-base-00);
 }
 
 .row {
@@ -155,13 +157,15 @@ input[type="text"].column-title-rename {
     align-items: center;
     justify-content: center;
 
+    background: var(--color-base-00);
+
     text-overflow: clip;
     overflow: hidden;
     white-space: nowrap;
 
 }
 
-.row.odd, .table-cell.odd {
+.table-cell.odd {
     background-color: var(--table-row-alt-background);
 }
 

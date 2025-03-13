@@ -1,9 +1,9 @@
 import React from 'react';
-import * as obs from 'obsidian';
 import { EditorView } from '@codemirror/view';
-import { EditorState } from '@codemirror/state';
-import {autocompletion, closeBrackets} from "@codemirror/autocomplete";
-import {defineLanguageFacet, HighlightStyle, LRLanguage, syntaxHighlighting} from '@codemirror/language';
+import {EditorSelection, EditorState} from '@codemirror/state';
+import * as state from '@codemirror/state';
+import {closeBrackets} from "@codemirror/autocomplete";
+import {HighlightStyle, LRLanguage, syntaxHighlighting} from '@codemirror/language';
 import {foldNodeProp, foldInside, indentNodeProp} from "@codemirror/language"
 import {styleTags, tags as t} from "@lezer/highlight"
 
@@ -25,10 +25,13 @@ export function EditableTableCell(props: { cell: Value, edit?: boolean, sheet: S
                     selection: [props.addr],
                     activeCell: props.addr
                 })}>{props.edit ? <>
-        <FormulaEditor cell={props.cell}/>
+        <FormulaEditor cell={props.cell} blur={() => props.sheet.state.dispatch("selection-change", {
+            selection: [props.addr],
+            activeCell: null
+        })}/>
     </> : <>
         <span>
-            {computedValue(props.cell, {addr: props.addr})}
+            {computedValue(props.cell, props.addr)}
         </span>
     </>}</div>
 }
@@ -59,68 +62,39 @@ export const highlight = HighlightStyle.define([
     { tag: t.string, fontStyle: "italic", class: "text" }
 ])
 
-export function FormulaEditor(props: { cell: Value }) {
+export function FormulaEditor(props: { cell: Value, blur: () => void }) {
     const editor = React.createRef<HTMLDivElement>();
 
-    // React.useEffect(() => {
-    //     if (!editor.current)
-    //         return;
-    //
-    //     const ed = new EditorView({
-    //         parent: editor.current,
-    //         state: EditorState.create({
-    //             doc: props.cell.getRaw(),
-    //             extensions: [
-    //                 closeBrackets(),
-    //                 highlighter.extension,
-    //                 syntaxHighlighting(highlight),
-    //                 EditorView.updateListener.of(update => props.cell.setRaw(update.state.doc.toString()))
-    //             ],
-    //         }),
-    //     });
-    //
-    //     return () => {
-    //         props.cell.setRaw(ed.state.doc.toString());
-    //         ed.destroy();
-    //     };
-    // }, []);
+    React.useEffect(() => {
+        if (!editor.current)
+            return;
 
-    // return <div
-    //     ref={editor}
-    //     className={"formula-editor"} />;
+        const ed = new EditorView({
+            parent: editor.current,
+            state: EditorState.create({
+                doc: props.cell.getRaw(),
+                selection: EditorSelection.single(0, props.cell.getRaw().length),
+                extensions: [
+                    closeBrackets(),
+                    highlighter.extension,
+                    syntaxHighlighting(highlight),
+                    EditorView.updateListener.of(update => props.cell.setRaw(update.state.doc.toString()))
+                ],
+            }),
+        });
 
-    const [value, setValue] = React.useState(props.cell.getRaw());
+        setTimeout(() => {
+            ed.focus();
+        });
 
-    React.useEffect(() => props.cell.setRaw(value), [value]);
+        return () => {
+            props.cell.setRaw(ed.state.doc.toString());
+            ed.destroy();
+        };
+    }, []);
 
-    return <div>
-        <input type="text" value={value} onChange={e => setValue(e.currentTarget.value)}/>
-    </div>
+    return <div
+        ref={editor}
+        onBlur={() => props.blur()}
+        className={"formula-editor"} />;
 }
-
-// function updateEditor(editor: HTMLDivElement): string {
-//     const spans = [];
-//
-//     const cursor = {
-//         bcount: 0,
-//         mark: 0
-//     };
-//
-//     for (let i = 0; i < formula.length; i++)
-//         if (formula[i] == '{' && ++cursor.bcount == 1)
-//             parent.createEl("span", {
-//                 text: formula.slice(parent.innerText.length, cursor.mark = i),
-//             });
-//
-//         else if (formula[i] == '}' && --cursor.bcount == 0)
-//             parent.createEl("span", {
-//                 text: formula.slice(parent.innerText.length, cursor.mark = i + 1),
-//                 cls: ['formula-address']
-//             });
-//
-//     editor.replaceChildren(parent);
-//
-//     setCaret(selection, editor);
-//
-//     return formula;
-// }

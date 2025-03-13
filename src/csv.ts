@@ -2,6 +2,7 @@ import * as expr from 'expression';
 import * as obs from "obsidian";
 import {DEFAULT_COLUMN_WIDTH, DEFAULT_ROW_HEIGHT} from "./components/table.js";
 import {Selection} from "./selection.js";
+import deepCompare from "./deep-compare.js";
 
 export const MAX_UNDO_HISTORY = 128; // 128 diff frames
 export const UNDO_DEBOUNCE_TIMEOUT = 2000; // 2000ms
@@ -28,10 +29,13 @@ export interface Value {
 	getRaw(): string,
 
 	onChange: (callback: (raw: string) => void) => () => void,
+	onChangeOnce: (callback: (raw: string) => void) => Value,
 
 	document: () => CSVDocument,
 
-	getComputedValue(context: any): string | { err: string };
+	getComputedValue(addr: Selection.Cell): string | { err: string };
+
+	recompute(addr: Selection.Cell): void
 }
 
 export type Change = {
@@ -44,10 +48,21 @@ export type Snapshot = {
 	diff: Change[]
 };
 
+export type CellDependencyContext = {
+	dependent_address: Selection.Cell,
+	dependent: Value,
+	dependencies: Value[]
+};
+
 export function value(raw: string, sheet: CSVDocument): Value {
 	const watches: ((raw: string) => void)[] = [];
+	const onChangeOnce: ((raw: string) => void)[] = [];
 
-	const isComputedValue = () => raw.startsWith("=")
+	const isComputedValue = () => raw.startsWith("=");
+
+	const prev: { raw: string, value: string } = {
+		raw, value: null as any
+	};
 
 	let value: Value;
 	return value = {
@@ -55,42 +70,62 @@ export function value(raw: string, sheet: CSVDocument): Value {
 
 		isComputedValue: () => isComputedValue(),
 		setRaw: (data, noUpdateHistory = false) => {
-			if (data == raw)
-				return;
+			if (data !== raw) {
+				const change: Change = {
+					value,
+					new: data,
+					old: raw
+				};
 
-			const change: Change = {
-				value,
-				new: data,
-				old: raw
-			};
+				if (!noUpdateHistory)
+					sheet.pushChange(change);
+
+				for (const watch of watches)
+					watch(raw);
+			}
 
 			raw = data;
 
-			if (!noUpdateHistory)
-				sheet.pushChange(change);
-
-			for (const watch of watches)
-				watch(raw);
+			onChangeOnce.splice(0, onChangeOnce.length)
+				.forEach(i => i(raw));
 		},
 		getRaw: () => raw,
+
 		onChange: callback => {
 			watches.push(callback);
 			return () => watches.includes(callback) ? void watches.splice(watches.indexOf(callback), 1) : void 0
 		},
 
-		getComputedValue(context: any): string | { err: string } {
-			if (isComputedValue())
+		onChangeOnce: callback => {
+			onChangeOnce.push(callback);
+			return value;
+		},
+
+		getComputedValue(addr: Selection.Cell): string | { err: string } {
+			if (!prev.value || prev.raw != raw)
 				try {
-					return `${sheet.cx.evaluate(raw.slice(1), context)}`;
+					return Object.assign(prev, {
+						raw,
+						value: isComputedValue() ? `${sheet.cx.evaluate(raw.slice(1), {
+							dependent_address: addr,
+							dependent: value,
+							dependencies: []
+						})}` : raw
+					}).value;
 				} catch (err) {
-					console.error(err)
-					if (err)
-						return {err: err.toString()};
-					else
-						return {err: 'Unknown Error'};
+					console.error(err);
+					return { err: err ? err.toString() : 'Unknown Error' };
 				}
-			else
-				return raw;
+
+			return prev.value;
+		},
+
+		recompute: addr => {
+			prev.value = isComputedValue() ? `${sheet.cx.evaluate(raw.slice(1), {
+				dependent_address: addr,
+				dependent: value,
+				dependencies: []
+			})}` : raw;
 		}
 	};
 }
@@ -139,7 +174,7 @@ export default class CSVDocument {
 
 	constructor() {
 		this.cx = new expr.Context(new expr.DataSource({
-			query: (cx: { addr: Selection.Cell }, query: string) => this.query(query, cx)
+			query: (cx: CellDependencyContext, query: string) => this.query(query, cx)
 		}));
 
 		this.cx.pushGlobal("num", (input: string) => Number(input));
@@ -388,30 +423,24 @@ export default class CSVDocument {
 	 * ## Valid formats
 	 * 1. Column reference: `:Column`
 	 * 2. Cell reference: `ColLetter+RowNumber` e.g `A5`
-	 * 3. Cell reference with file `file:Cell` e.g `file.csv:A5`
+	 * 3. Cell reference with file `file:Cell` e.g `file.csv:A5` !not implemented
 	 *
 	 * @param query
 	 * @param cx Stored Expression data
 	 */
-	query(query: string, cx: { addr: Selection.Cell }): any {
-		console.log(`Query: ${query}`);
-
-		if (query.includes(":"))
-			if (query.startsWith(":"))
-				if (!this.documentProperties.columnTitles.includes(query.slice(1)))
-					return null;
-				else
-					return this.getValueAt({
-						row: cx.addr.row,
-						col: this.documentProperties.columnTitles.indexOf(query.slice(1))
-					}, false)
-						?.getComputedValue(cx);
-
-			else
+	query(query: string, cx: CellDependencyContext): any {
+		if (query.includes(":")) {
+			if (!query.startsWith(":"))
 				throw "Not Implemented";
 
-		else {
-			const match = query.match(/^[a-zA-Z]+\d+$/);
+			return this.getValueAt({
+				row: cx.dependent_address.row,
+				col: this.documentProperties.columnTitles.indexOf(query.slice(1))
+			}, false)
+				?.onChangeOnce(raw => cx.dependent.recompute(cx.dependent_address))
+				?.getComputedValue(cx.dependent_address);
+		} else {
+			const match = query.match(/^([a-zA-Z]+)(\d+)$/);
 
 			if (!match)
 				return null;
@@ -420,8 +449,9 @@ export default class CSVDocument {
 				.map(i => i.charCodeAt(0) - "a".charCodeAt(0))
 				.reduce((a, i) => a * 26 + i, 0);
 
-			return this.getValueAt({ row: Number(match[2]), col: column }, false)
-				?.getComputedValue(cx);
+			return this.getValueAt({row: Number(match[2]), col: column}, false)
+				?.onChangeOnce(raw => cx.dependent.recompute(cx.dependent_address))
+				?.getComputedValue(cx.dependent_address);
 		}
 	}
 }

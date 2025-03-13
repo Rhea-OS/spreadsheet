@@ -19,6 +19,11 @@
     align-items: center;
 }
 
+.workspace-leaf-content .view-content.spreadsheet-container {
+    margin: 0;
+    padding: 0;
+}
+
 /* Defined by the spreadsheet, contains the table widget */
 .spreadsheet {
     grid-area: table;
