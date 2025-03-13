@@ -430,6 +430,8 @@ export function Spreadsheet(props: { sheet: StateHolder, settings: Settings }) {
 			table.current?.focus()
 	});
 
+	const toLetterString = (num: number): string => num >= 26 ? `${toLetterString(num / 26 - 1)}${String.fromCharCode('A'.charCodeAt(0) + num % 26)}` : `${String.fromCharCode('A'.charCodeAt(0) + num % 26)}`;
+
 	return <section
 		className={"table-widget"}
 		ref={table}
@@ -454,7 +456,10 @@ export function Spreadsheet(props: { sheet: StateHolder, settings: Settings }) {
 					                          ...prev,
 					                          currentCell: {col: col.index}
 				                          }) : null)}
-				                          onContextMenu={e => columnContextMenu(e, col, sheet)}>{col.title}</div>}
+				                          onContextMenu={e => columnContextMenu(e, col, sheet)}>
+					<b>{col.title}</b>
+					<span className={"column-number"}>{`[${toLetterString(col.index)}]`}</span>
+				</div>}
 				renderRow={row => <div className={"row-title"}
 				                       onContextMenu={e => rowContextMenu(e, row, sheet)}>{row}</div>}>
 				{mkTableCell(sheet, (cell, addr) => <div className={"table-cell-inner"}
