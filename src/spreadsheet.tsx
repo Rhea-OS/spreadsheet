@@ -51,6 +51,8 @@ export default class SpreadsheetView extends obs.TextFileView implements StateHo
 			activeCell: null
 		});
 
+		this.contentEl.classList.add("spreadsheet-container");
+
 		this.state.on("selection-change", prev => {
 			if (prev.activeCell && !this.doc.getValueAt(prev.activeCell)) {
 				for (let col = this.doc.documentProperties.columnTitles.length; col <= prev.activeCell.col; col++)
@@ -433,7 +435,7 @@ export function Spreadsheet(props: { sheet: StateHolder, settings: Settings }) {
 		ref={table}
 		tabIndex={-1}>
 
-		<Toolbar settings={props.settings} sheet={sheet}/>
+		{/*<Toolbar settings={props.settings} sheet={sheet}/>*/}
 
 		<div className={"spreadsheet"}
 		     onMouseUp={e => endSelection(e)}>

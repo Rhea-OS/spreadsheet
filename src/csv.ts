@@ -438,7 +438,7 @@ export default class CSVDocument {
 				?.onChangeOnce(raw => cx.dependent.recompute(cx.dependent_address))
 				?.getComputedValue(cx.dependent_address);
 		} else {
-			const match = query.match(/^[a-zA-Z]+\d+$/);
+			const match = query.match(/^([a-zA-Z]+)(\d+)$/);
 
 			if (!match)
 				return null;
@@ -448,6 +448,7 @@ export default class CSVDocument {
 				.reduce((a, i) => a * 26 + i, 0);
 
 			return this.getValueAt({row: Number(match[2]), col: column}, false)
+				?.onChangeOnce(raw => cx.dependent.recompute(cx.dependent_address))
 				?.getComputedValue(cx.dependent_address);
 		}
 	}

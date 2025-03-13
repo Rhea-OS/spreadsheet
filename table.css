@@ -8,8 +8,8 @@
 
 /* Border */
 .table-container {
-    border-top: var(--table-border-width) solid var(--table-border-color);
-    border-left: var(--table-border-width) solid var(--table-border-color);
+    /*border-top: var(--table-border-width) solid var(--table-border-color);*/
+    /*border-left: var(--table-border-width) solid var(--table-border-color);*/
 
     overflow: visible;
 }
