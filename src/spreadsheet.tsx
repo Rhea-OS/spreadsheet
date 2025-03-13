@@ -9,7 +9,6 @@ import CSVDocument, {DocumentProperties, value, Value} from "./csv.js";
 import {Settings} from "./settings/settingsTab.js";
 import Toolbar from "./components/toolbar.js";
 import Table, {mkTableCell} from "./components/table.js";
-import {computedValue} from "./inline.js";
 import {Selection} from "./selection.js";
 import {columnContextMenu, rowContextMenu} from "./contextMenu.js";
 import {renameColumn} from "./renameColumn.js";
