@@ -2,7 +2,7 @@ import * as expr from 'expression';
 import * as obs from "obsidian";
 import {DEFAULT_COLUMN_WIDTH, DEFAULT_ROW_HEIGHT} from "./components/table.js";
 import {Selection} from "./selection.js";
-import deepCompare from "./deep-compare.js";
+import globals, * as all from './globals.js';
 
 export const MAX_UNDO_HISTORY = 128; // 128 diff frames
 export const UNDO_DEBOUNCE_TIMEOUT = 2000; // 2000ms
@@ -178,6 +178,9 @@ export default class CSVDocument {
 		}));
 
 		this.cx.pushGlobal("num", (input: string) => Number(input));
+
+		for (const [a, i] of [...Object.entries(globals), ...Object.entries(all)])
+			this.cx.pushGlobal(a, typeof i == 'function' ? i.bind(this) : i);
 
 		const watchers: (() => void)[] = [];
 
@@ -437,7 +440,7 @@ export default class CSVDocument {
 				row: cx.dependent_address.row,
 				col: this.documentProperties.columnTitles.indexOf(query.slice(1))
 			}, false)
-				?.onChangeOnce(raw => cx.dependent.recompute(cx.dependent_address))
+				?.onChangeOnce(raw => typeof cx.dependent.recompute == 'function' && cx.dependent.recompute?.(cx.dependent_address))
 				?.getComputedValue(cx.dependent_address);
 		} else {
 			const match = query.match(/^([a-zA-Z]+)(\d+)$/);
@@ -450,7 +453,7 @@ export default class CSVDocument {
 				.reduce((a, i) => a * 26 + i, 0);
 
 			return this.getValueAt({row: Number(match[2]), col: column}, false)
-				?.onChangeOnce(raw => cx.dependent.recompute(cx.dependent_address))
+				?.onChangeOnce(raw => typeof cx.dependent.recompute == 'function' && cx.dependent.recompute?.(cx.dependent_address))
 				?.getComputedValue(cx.dependent_address);
 		}
 	}

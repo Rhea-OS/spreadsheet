@@ -1,30 +1,38 @@
 # Spreadsheet
 
-Spreadsheet is an Obsidian plugin which follows the Obsidian mindset of open-standards and supports rich spreadsheet
-handling through CSV.
+A spreadsheet plugin for Obsidian. Create, edit and manage spreadsheets using a specialised CSV format.
 
-## Usage
+## Features
 
-A spreadsheet is any CSV document in your vault. Front matter is also supported natively. The following properties are
-understood:
+- [x] Display / Edit CSV files
+- [x] Bulk-edit Values
+- [ ] Table operations
+- [x] Front-matter support
+- [x] Formulas
+- [ ] Mathematical, financial and statistics functions
+- [ ] Unit conversion
+- [ ] Global Search integration
 
-| property                    | type              | function                                                                                                                                                                                            |
-|-----------------------------|:------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `columnTypes`               | typeName[]        | Allows constraining a column to a particular type. [All types](#types)                                                                                                                              |
-| `columnTitles`              | string[]          | Gives each column a name. If this property is omitted, it will be inferred to be the first row in the CSV document. Upon saving, this value will be moved into the frontmatter of the CSV document. |                         
-| `constrainToDefinedColumns` | 'true' or 'false' | If true, discards values without a `columnTitle`                                                                                                                                                    |
-| `allowedTypes`              | typeName[]        | A list of [custom types](#custom-types) which are permitted in the document                                                                                                                         |
-| `columnSeparator`           | string            | A string which separates columns. If not defined, will attempt to detect either `,` or `;`. This value is written to the front matter when the document is saved.                                   |
+## Formula Language
 
-## Types
+The formula language allows you to calculate things like a traditional spreadsheet by interpreting
+cell-values beginning with `=` as a formula.
 
-A spreadsheet is designed to allow working with various data formats. This spreadsheet handler natively supports the following types:
+The syntax is simple, yet extensible through [[#extensions|extensions]], featuring
 
-* raw text
-* rich text (markdown)
-* formulas
-* dates
-* values with units
-* 
+* **arithmetic operators**: `+` `-` `*` `/` `%` `^`
+* **logical operators**: `>` `<` `==` `!=` `&&` `||` `!`
+* **functions**: `min(1,2,3)`
+* **lists and maps**: `[1,2,3]` and `[a=1,b=2,c=3]`
+* **objects**: `([a=1,b=2,c=3]).b==3`
 
-### Custom Types
+> **Note on extensibility:** The formula language is designed to be extensible. You can define your own operators,
+> constants, functions, and integrations with the host system.
+>
+> The formula language provides no functionality of its own. The list of standard operators is defined client-side.
+
+## Extensions
+
+### Implementing functions
+
+You can add your own functions which you can use in a formula in the settings. 
