@@ -62,32 +62,40 @@ export const highlight = HighlightStyle.define([
 export function FormulaEditor(props: { cell: Value }) {
     const editor = React.createRef<HTMLDivElement>();
 
-    React.useEffect(() => {
-        if (!editor.current)
-            return;
+    // React.useEffect(() => {
+    //     if (!editor.current)
+    //         return;
+    //
+    //     const ed = new EditorView({
+    //         parent: editor.current,
+    //         state: EditorState.create({
+    //             doc: props.cell.getRaw(),
+    //             extensions: [
+    //                 closeBrackets(),
+    //                 highlighter.extension,
+    //                 syntaxHighlighting(highlight),
+    //                 EditorView.updateListener.of(update => props.cell.setRaw(update.state.doc.toString()))
+    //             ],
+    //         }),
+    //     });
+    //
+    //     return () => {
+    //         props.cell.setRaw(ed.state.doc.toString());
+    //         ed.destroy();
+    //     };
+    // }, []);
 
-        const ed = new EditorView({
-            parent: editor.current,
-            state: EditorState.create({
-                doc: props.cell.getRaw(),
-                extensions: [
-                    closeBrackets(),
-                    highlighter.extension,
-                    syntaxHighlighting(highlight),
-                    EditorView.updateListener.of(update => props.cell.setRaw(update.state.doc.toString()))
-                ],
-            }),
-        });
+    // return <div
+    //     ref={editor}
+    //     className={"formula-editor"} />;
 
-        return () => {
-            props.cell.setRaw(ed.state.doc.toString());
-            ed.destroy();
-        };
-    }, []);
+    const [value, setValue] = React.useState(props.cell.getRaw());
 
-    return <div
-        ref={editor}
-        className={"formula-editor"} />;
+    React.useEffect(() => props.cell.setRaw(value), [value]);
+
+    return <div>
+        <input type="text" value={value} onChange={e => setValue(e.currentTarget.value)}/>
+    </div>
 }
 
 // function updateEditor(editor: HTMLDivElement): string {

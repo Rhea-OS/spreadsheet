@@ -1,8 +1,8 @@
-import length from '../units/length.json' assert { type: 'json' };
-import time from '../units/time.json' assert { type: 'json' };
-import data from '../units/data.json' assert { type: 'json' };
-import physics from '../units/physics.json' assert { type: 'json' };
-import currency from '../units/currency.json' assert { type: 'json' };
+import length from '../units/length.json' with { type: 'json' };
+import time from '../units/time.json' with { type: 'json' };
+import data from '../units/data.json' with { type: 'json' };
+import physics from '../units/physics.json' with { type: 'json' };
+import currency from '../units/currency.json' with { type: 'json' };
 
 export default [
     ...length,
