@@ -106,7 +106,7 @@ export function value(raw: string, sheet: CSVDocument): Value {
 				try {
 					return Object.assign(prev, {
 						raw,
-						value: isComputedValue() ? `${sheet.cx.evaluate(raw.slice(1), {
+						value: isComputedValue() ? `${sheet.cx.evaluateStr(raw.slice(1), {
 							dependent_address: addr,
 							dependent: value,
 							dependencies: []
@@ -121,7 +121,7 @@ export function value(raw: string, sheet: CSVDocument): Value {
 		},
 
 		recompute: addr => {
-			prev.value = isComputedValue() ? `${sheet.cx.evaluate(raw.slice(1), {
+			prev.value = isComputedValue() ? `${sheet.cx.evaluateStr(raw.slice(1), {
 				dependent_address: addr,
 				dependent: value,
 				dependencies: []

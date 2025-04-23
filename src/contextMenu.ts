@@ -6,6 +6,8 @@ import {renameColumn} from "./renameColumn.js";
 import {StateHolder} from "./main.js";
 
 export function columnContextMenu(e: React.MouseEvent, col: ColumnHeader, sheet: StateHolder) {
+    e.preventDefault();
+
     const menu = new obs.Menu();
 
     menu.addItem(item => item
@@ -65,10 +67,22 @@ export function columnContextMenu(e: React.MouseEvent, col: ColumnHeader, sheet:
         .setTitle(`Sort by ${sheet.documentProperties.columnTitles[col.index]} (Descending)`)
         .onClick(e => void 0));
 
-    menu.addItem(item => item
-        .setIcon("filter")
-        .setTitle(`Filter on ${sheet.documentProperties.columnTitles[col.index]}`)
-        .onClick(e => void 0));
+    menu.addItem(item => {
+        const filter = (item
+            .setIcon("filter")
+            .setTitle(`Filter on ${sheet.documentProperties.columnTitles[col.index]}`)
+            .onClick(e => alert("hi"))  as any as { setSubmenu: () => obs.Menu })
+            .setSubmenu()
+            .addItem(item => item
+                .setTitle("By Value"))
+            .addItem(item => item
+                .setTitle("Unique"))
+            .addItem(item => item
+                .setTitle("Empty"))
+            .addItem(item => item
+                .setTitle("Not Empty"))
+
+    });
 
     menu.addItem(item => item
         .setIcon("group")

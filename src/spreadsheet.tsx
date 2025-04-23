@@ -1,6 +1,7 @@
 import React from 'react';
 import * as rdom from "react-dom/client";
 import * as obs from "obsidian";
+import * as icons from "lucide-react";
 import StateManager from '@j-cake/jcake-utils/state';
 import useEvent from '@react-hook/event';
 
@@ -8,7 +9,7 @@ import SpreadsheetPlugin, {StateHolder} from "./main.js";
 import CSVDocument, {DocumentProperties, value, Value} from "./csv.js";
 import {Settings} from "./settings/settingsTab.js";
 import Toolbar from "./components/toolbar.js";
-import Table, {mkTableCell} from "./components/table.js";
+import Table, {ColumnHeader, mkTableCell} from "./components/table.js";
 import {Selection} from "./selection.js";
 import {columnContextMenu, rowContextMenu} from "./contextMenu.js";
 import {renameColumn} from "./renameColumn.js";
@@ -459,6 +460,9 @@ export function Spreadsheet(props: { sheet: StateHolder, settings: Settings }) {
 				                          onContextMenu={e => columnContextMenu(e, col, sheet)}>
 					<b>{col.title}</b>
 					<span className={"column-number"}>{`[${toLetterString(col.index)}]`}</span>
+					<button className={"clickable-icon"} onClick={e => columnContextMenu(e, col, props.sheet)}>
+						<icons.ChevronDownIcon size={11} />
+					</button>
 				</div>}
 				renderRow={row => <div className={"row-title"}
 				                       onContextMenu={e => rowContextMenu(e, row, sheet)}>{row}</div>}>

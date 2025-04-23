@@ -237,24 +237,31 @@ input[type="text"].column-title-rename {
 }
 
 .formula-editor {
+    cursor: text;
     flex: 1;
     color: var(--code-normal);
+
+    padding: var(--size-2-2) var(--size-4-2);
 }
 
-.formula-editor .text {
+.formula-editor .token.string {
     color: var(--code-string);
 }
 
-.formula-editor .operator {
-    color: var(--code-operator);
-}
-
-.formula-editor .name {
+.formula-editor .token.name {
     color: var(--code-value);
 }
 
-.formula-editor .addr {
+.formula-editor .token.address {
     color: var(--color-red);
+}
+
+.formula-editor .token.name {
+    color: var(--color-cyan);
+}
+
+.formula-editor .token.num {
+    color: var(--color-pink);
 }
 
 .formula-editor .addr:is(:nth-of-type(16n+1), :nth-of-type(16n+2)) {
