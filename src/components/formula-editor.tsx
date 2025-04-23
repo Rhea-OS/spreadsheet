@@ -37,7 +37,7 @@ export function FormulaEditor(props: { cell: Value, blur: () => void }) {
 
         const ed = new Editor(editor.current, props.cell.document().cx);
 
-        ed.addEventListener('commit', text => props.cell.setRaw(text.detail));
+        ed.addEventListener('commit', text => props.cell.setRaw((text as CustomEvent<string>).detail));
         ed.setText(props.cell.getRaw());
 
         ed.el.focus();
@@ -95,26 +95,32 @@ export class Editor extends EventTarget {
         try {
             const sel = this.getSelectionOffsets(this.el);
 
-            let offset = 0;
-
             const tokens: Array<string | HTMLSpanElement> = [];
 
-            for (const token of this.cx.parseStr(input)) {
-                const lexeme = {
-                    token: token.token(),
-                    type: expr.TokenType[token.type].toLowerCase(),
-                    offset: input.indexOf(token.token(), offset)
-                };
+            if (input.startsWith('=')) {
+                let offset = 0;
+                tokens.push('=');
 
-                const colour = document.createElement('span');
-                colour.setText(lexeme.token);
-                colour.classList.add('token', lexeme.type);
-                tokens.push(input.slice(offset, lexeme.offset), colour);
+                const formula = input.slice(1);
 
-                offset = lexeme.offset + lexeme.token.length;
-            }
+                for (const token of this.cx.parseStr(formula)) {
+                    const lexeme = {
+                        token: token.token(),
+                        type: expr.TokenType[token.type].toLowerCase(),
+                        offset: formula.indexOf(token.token(), offset)
+                    };
 
-            tokens.push(input.slice(offset));
+                    const colour = document.createElement('span');
+                    colour.setText(lexeme.token);
+                    colour.classList.add('token', lexeme.type);
+                    tokens.push(formula.slice(offset, lexeme.offset), colour);
+
+                    offset = lexeme.offset + lexeme.token.length;
+                }
+
+                tokens.push(formula.slice(offset));
+            } else
+                tokens.push(input);
 
             this.el.innerText = '';
             this.el.append(...tokens);
@@ -204,9 +210,8 @@ export class Editor extends EventTarget {
         }
     }
 
-
     private update(e: Event) {
-        this.setText(this.el.innerText.trim());
+        this.setText(this.el.innerText);
     }
 
     private commit() {
