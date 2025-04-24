@@ -5,7 +5,7 @@ import StateManager from '@j-cake/jcake-utils/state';
 import useEvent from '@react-hook/event';
 
 import SpreadsheetPlugin, {StateHolder} from "./main.js";
-import CSVDocument, {DocumentProperties, value, Value} from "./csv.js";
+import CSVDocument, {DocumentProperties, toLetterString, value, Value} from "./csv.js";
 import {Settings} from "./settings/settingsTab.js";
 import Toolbar from "./components/toolbar.js";
 import Table, {mkTableCell} from "./components/table.js";
@@ -429,8 +429,6 @@ export function Spreadsheet(props: { sheet: StateHolder, settings: Settings }) {
 		if (!table.current?.matches(":focus, :focus-within"))
 			table.current?.focus()
 	});
-
-	const toLetterString = (num: number): string => num >= 26 ? `${toLetterString(num / 26 - 1)}${String.fromCharCode('A'.charCodeAt(0) + num % 26)}` : `${String.fromCharCode('A'.charCodeAt(0) + num % 26)}`;
 
 	return <section
 		className={"table-widget"}

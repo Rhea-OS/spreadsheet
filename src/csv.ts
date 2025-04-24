@@ -54,6 +54,8 @@ export type CellDependencyContext = {
 	dependencies: Value[]
 };
 
+export type SerialisedCellAddress = string;
+
 export function value(raw: string, sheet: CSVDocument): Value {
 	const watches: ((raw: string) => void)[] = [];
 	const onChangeOnce: ((raw: string) => void)[] = [];
@@ -64,8 +66,8 @@ export function value(raw: string, sheet: CSVDocument): Value {
 		raw, value: null as any
 	};
 
-	let value: Value;
-	return value = {
+	const value: Value = {} as any;
+	return Object.assign(value, {
 		document: () => sheet,
 
 		isComputedValue: () => isComputedValue(),
@@ -106,11 +108,7 @@ export function value(raw: string, sheet: CSVDocument): Value {
 				try {
 					return Object.assign(prev, {
 						raw,
-						value: isComputedValue() ? `${sheet.cx.evaluate(raw.slice(1), {
-							dependent_address: addr,
-							dependent: value,
-							dependencies: []
-						})}` : raw
+						value: isComputedValue() ? `${sheet.cx.evaluate(raw.slice(1), sheet.getContextName(addr, value))}` : raw
 					}).value;
 				} catch (err) {
 					console.error(err);
@@ -127,10 +125,11 @@ export function value(raw: string, sheet: CSVDocument): Value {
 				dependencies: []
 			})}` : raw;
 		}
-	};
+	} satisfies Value);
 }
 
 const andThen = <T, R>(cb: (x: T) => R, x?: T): R | null => x ? cb(x) : null;
+export const toLetterString = (num: number): string => num >= 26 ? `${toLetterString(num / 26 - 1)}${String.fromCharCode('A'.charCodeAt(0) + num % 26)}` : `${String.fromCharCode('A'.charCodeAt(0) + num % 26)}`;
 
 export interface DocumentProperties {
 	frontMatter: FrontMatter;
@@ -172,9 +171,11 @@ export default class CSVDocument {
 	public readonly onExternalChange: (watcher: () => void) => (() => void);
 	private readonly notifyChange: (() => void);
 
+	private cellContext: Record<SerialisedCellAddress, CellDependencyContext> = {};
+
 	constructor() {
 		this.cx = new expr.Context(new expr.DataSource({
-			query: (cx: CellDependencyContext, query: string) => this.query(query, cx)
+			query: (cx: SerialisedCellAddress, query: string) => this.query(query, this.cellContext[cx])
 		}));
 
 		this.cx.pushGlobal("num", (input: string) => Number(input));
@@ -188,6 +189,24 @@ export default class CSVDocument {
 
 		this.onExternalChange = watcher => onExternalChange(watcher);
 		this.notifyChange = () => watchers.forEach(i => i());
+	}
+
+	public getContext(addr: Selection.Cell, value: Value): CellDependencyContext {
+		return this.cellContext[`${toLetterString(addr.col)}${addr.row}`] ??= {
+			dependent_address: addr,
+			dependent: value,
+			dependencies: []
+		};
+	}
+
+	public getContextName(addr: Selection.Cell, value: Value): SerialisedCellAddress {
+		const name: SerialisedCellAddress = `${toLetterString(addr.col)}${addr.row}`;
+		this.cellContext[name] ??= {
+			dependent_address: addr,
+			dependent: value,
+			dependencies: []
+		};
+		return name;
 	}
 
 	/// Inform the CSV Engine of a data change. Used for undo/redo chains
@@ -426,9 +445,10 @@ export default class CSVDocument {
 	 * 3. Cell reference with file `file:Cell` e.g `file.csv:A5` !not implemented
 	 *
 	 * @param query
-	 * @param cx Stored Expression data
+	 * @param cx Stored expression data
 	 */
 	query(query: string, cx: CellDependencyContext): any {
+
 		if (query.includes(":")) {
 			if (!query.startsWith(":"))
 				throw "Not Implemented";
