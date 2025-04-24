@@ -31,6 +31,8 @@
     text-overflow: ellipsis;
     white-space: nowrap;
     overflow: visible;
+
+    z-index: 3000;
 }
 
 .table-header-cell, .table-cell {
@@ -205,7 +207,7 @@ input[type="text"].column-title-rename {
     /*padding: 1px 0 0 1px;*/
     box-sizing: content-box;
     /*margin: -1px 0 0 -1px;*/
-    z-index: 2;
+    z-index: 3000;
 }
 
 .selection-range.column-vector {
@@ -229,25 +231,37 @@ input[type="text"].column-title-rename {
     justify-content: center;
 }
 
-.formula-editor {
-    flex: 1;
-    color: var(--code-normal);
+.formula-error {
+    display: flex;
+    color: var(--text-error);
 }
 
-.formula-editor .text {
+.formula-editor {
+    cursor: text;
+    flex: 1;
+    color: var(--code-normal);
+
+    padding: var(--size-2-2) var(--size-4-2);
+}
+
+.formula-editor .token.string {
     color: var(--code-string);
 }
 
-.formula-editor .operator {
-    color: var(--code-operator);
-}
-
-.formula-editor .name {
+.formula-editor .token.name {
     color: var(--code-value);
 }
 
-.formula-editor .addr {
+.formula-editor .token.address {
     color: var(--color-red);
+}
+
+.formula-editor .token.name {
+    color: var(--color-cyan);
+}
+
+.formula-editor .token.num {
+    color: var(--color-pink);
 }
 
 .formula-editor .addr:is(:nth-of-type(16n+1), :nth-of-type(16n+2)) {

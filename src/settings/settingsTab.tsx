@@ -7,12 +7,25 @@ import SpreadsheetPlugin from "../main.js";
 import Tools from '../actions.js';
 import ToolbarSettings from "./toolbar.js";
 import DatatypeSettings from "./datatype.js";
+import Integration from "./integration.js";
 
 export interface Settings {
     toolbar: (keyof typeof Tools | null)[],
     units: Unit[],
-    dataTypes: ({ name: string } & Datatype)[]
+    dataTypes: ({ name: string } & Datatype)[],
+    integrations: {
+        external: string[],
+        symbols: Record<string, Constant | Fn>
+    }
 }
+
+export type Constant = {
+    constant: () => any
+} | number;
+
+export type Fn = {
+    fn: string
+} | string;
 
 export const default_settings: Settings = {
     toolbar: ['undo', 'redo', null, 'cut', 'copy', 'paste', null, 'viewOptions'],
@@ -24,7 +37,17 @@ export const default_settings: Settings = {
     }, {
         name: "IPv4 Address",
         format: ''
-    }]
+    }],
+    integrations: {
+        external: [],
+        symbols: {
+            "PI": Math.PI,
+            "TAU": Math.PI * 2,
+            "E": Math.E,
+            "SQRT2": Math.sqrt(2),
+            "SQRT3": Math.sqrt(3),
+        }
+    }
 };
 
 export type Datatype = Text | Numeric | List;
@@ -62,5 +85,6 @@ export function SpreadsheetSettings(props: { tab: SettingsTab }) {
     return <div className="spreadsheet-settings">
         <ToolbarSettings plugin={props.tab.plugin} />
         <DatatypeSettings plugin={props.tab.plugin} />
+        <Integration plugin={props.tab.plugin} />
     </div>
 }

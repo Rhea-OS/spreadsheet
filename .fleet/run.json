@@ -1,0 +1,14 @@
+{
+	"configurations": [
+		{
+			"type": "npm",
+			"name": "build:spreadsheet",
+			"command": "run",
+			"scripts": "build",
+			"dependsOn": ["build:expression-js"],
+			"environment": {
+				"vault_dir": "$WORKSPACE_DIR$/docs",
+			}
+		}
+	]
+}
