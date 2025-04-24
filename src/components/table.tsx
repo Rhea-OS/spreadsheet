@@ -39,7 +39,6 @@ export interface TableProps<Row extends TableRow> {
 }
 
 export default function Table<Row extends TableRow>(props: TableProps<Row>) {
-
     const [columns, setColumns] = React.useState<ColumnHeader[]>([]);
 
     const ref = React.useRef<HTMLDivElement | null>(null);
@@ -60,7 +59,8 @@ export default function Table<Row extends TableRow>(props: TableProps<Row>) {
     return <section
         className={"table-widget"}
         ref={ref}
-        onMouseOut={e => void 0}>
+        onMouseOut={e => void 0}
+        key={`spreadsheet-${props.sheet.documentProperties.title}`}>
 
         <section
             className={"table-container"}

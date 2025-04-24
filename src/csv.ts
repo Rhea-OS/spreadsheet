@@ -144,6 +144,8 @@ export interface DocumentProperties {
 
 	columnWidths: number[];
 	rowHeights: number[];
+
+	title: string,
 }
 
 export default class CSVDocument {
@@ -164,7 +166,9 @@ export default class CSVDocument {
 		rowHeights: [],
 
 		separator: ";",
-		uriEncoding: false
+		uriEncoding: false,
+
+		title: ""
 	};
 
 	change: Date = new Date();

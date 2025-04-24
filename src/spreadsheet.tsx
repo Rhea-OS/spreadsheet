@@ -279,6 +279,14 @@ export default class SpreadsheetView extends obs.TextFileView implements StateHo
 	}
 
 	onPaneMenu(menu: obs.Menu, source: string) {
+
+		menu.addItem(item => item
+			.setIcon("code-xml")
+			.setTitle("Source mode")
+			.onClick(() => this.copy()));
+
+		menu.addSeparator();
+
 		menu.addItem(item => item
 			.setIcon("settings")
 			.setTitle("Spreadsheet Preferences"));
