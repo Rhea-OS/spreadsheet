@@ -15,11 +15,15 @@ export interface FrontMatter extends Record<string, any> {
 	columnWidths?: number[],
 	rowHeights?: number[],
 
+	labelledCells?: Record<string, StringifiedCell>,
+
 	columnTitles?: string[],
 	allowedTypes?: string[],
 	columnSeparator?: string,
 	urlEscaped?: boolean
 }
+
+type StringifiedCell = string;
 
 export interface Value {
 	isComputedValue: () => boolean,
@@ -443,7 +447,9 @@ export default class CSVDocument {
 				?.onChangeOnce(raw => typeof cx.dependent.recompute == 'function' && cx.dependent.recompute?.(cx.dependent_address))
 				?.getComputedValue(cx.dependent_address);
 		} else {
-			const match = query.match(/^([a-zA-Z]+)(\d+)$/);
+			const cell = (this.documentProperties.frontMatter.labelledCells ?? {})[query];
+
+			const match = (cell ?? query).match(/^([a-zA-Z]+)(\d+)$/);
 
 			if (!match)
 				return null;
