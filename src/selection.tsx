@@ -349,6 +349,19 @@ export namespace Selection {
 
         return `${toLetterString(cell.col)}${cell.row.toFixed()}`
     }
+
+    export function parse(str: string): Cell | null {
+        const match = str.match(/^([a-zA-Z]+)(\d+)$/);
+
+        if (!match)
+            return null;
+
+        const column = [...match[1].toLowerCase()]
+            .map(i => i.charCodeAt(0) - "a".charCodeAt(0))
+            .reduce((a, i) => a * 26 + i, 0);
+
+        return {row: Number(match[2]), col: column};
+    }
 }
 
 export default function SelectionIndicator({selection, sheet}: {

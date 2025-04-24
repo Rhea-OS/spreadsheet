@@ -6,7 +6,7 @@ import StateManager from '@j-cake/jcake-utils/state';
 import useEvent from '@react-hook/event';
 
 import SpreadsheetPlugin, {StateHolder} from "./main.js";
-import CSVDocument, {DocumentProperties, value, Value} from "./csv.js";
+import CSVDocument, {DocumentProperties, Value} from "./csv.js";
 import {Settings} from "./settings/settingsTab.js";
 import Toolbar from "./components/toolbar.js";
 import Table, {ColumnHeader, mkTableCell} from "./components/table.js";
@@ -45,7 +45,7 @@ export default class SpreadsheetView extends obs.TextFileView implements StateHo
 
         this.doc = new CSVDocument();
 
-        this.doc.raw[0].push(value("", this.doc));
+        this.doc.raw[0].push(new Value("", this.doc));
 
         this.state = new StateManager<EditorState>({
             selection: [],
