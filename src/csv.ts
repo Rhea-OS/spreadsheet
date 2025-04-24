@@ -75,11 +75,7 @@ export class Value {
 			try {
 				return Object.assign(this.prev, {
 					raw: this.raw,
-					value: this.isComputedValue() ? `${this.sheet.cx.evaluateStr(this.raw.slice(1), {
-						dependent_address: addr,
-						dependent: value,
-						dependencies: []
-					})}` : this.raw
+					value: this.isComputedValue() ? `${this.sheet.cx.evaluateStr(this.raw.slice(1), Selection.stringify(addr))}` : this.raw
 				}).value;
 			} catch (err) {
 				console.error(err);
@@ -94,11 +90,7 @@ export class Value {
 	}
 
 	recompute(addr: Selection.Cell): void {
-		this.prev.value = this.isComputedValue() ? `${this.sheet.cx.evaluateStr(this.raw.slice(1), {
-			dependent_address: addr,
-			dependent: value,
-			dependencies: []
-		})}` : this.raw;
+		this.prev.value = this.isComputedValue() ? `${this.sheet.cx.evaluateStr(this.raw.slice(1), Selection.stringify(addr))}` : this.raw;
 	}
 
 	setRaw(data: string, noUpdateHistory: boolean = false): void {
@@ -123,11 +115,9 @@ export class Value {
 	}
 }
 
-export function value(raw: string, sheet: CSVDocument): Value {
-	return new Value(raw, sheet);
-}
-
-const andThen = <T, R>(cb: (x: T) => R, x?: T): R | null => x ? cb(x) : null;
+// export function value(raw: string, sheet: CSVDocument): Value {
+// 	return new Value(raw, sheet);
+// }
 
 export interface DocumentProperties {
 	frontMatter: FrontMatter;
@@ -146,7 +136,7 @@ export interface DocumentProperties {
 export default class CSVDocument {
 	raw: Value[][] = [[]];
 
-	cx: expr.Context;
+	cx: expr.Context & { dependencyContext: { [cx in StringifiedCell]: CellDependencyContext } };
 	undoStack: Snapshot[] = [];
 	redoStack: Snapshot[] = [];
 
@@ -170,9 +160,18 @@ export default class CSVDocument {
 	private readonly notifyChange: (() => void);
 
 	constructor() {
-		this.cx = new expr.Context(new expr.DataSource({
-			query: (cx: CellDependencyContext, query: string) => this.query(query, cx)
-		}));
+		this.cx = Object.assign(new expr.Context(new expr.DataSource({
+			query: (cx: StringifiedCell, query: string) => {
+				const dependent = Selection.parse(cx) ?? { row: 0, col: 0 };
+				return this.query(query, this.cx.dependencyContext[cx] ??= {
+					dependent_address: dependent,
+					dependent: this.getValueAt(dependent, true)!,
+					dependencies: []
+				} satisfies CellDependencyContext);
+			},
+		})), {
+			dependencyContext: {}
+		});
 
 		this.cx.pushGlobal("num", (input: string) => Number(input));
 
@@ -305,7 +304,7 @@ export default class CSVDocument {
 		this.raw = [];
 
 		for (const [cells, row] of rows.map((i, row) => [i.split(separator), row] as const)) {
-			this.raw.push(new Array(this.documentProperties.columnTitles.length).fill("").map(cell => value(cell, this)));
+			this.raw.push(new Array(this.documentProperties.columnTitles.length).fill("").map(cell => new Value(cell, this)));
 
 			for (const [raw, col] of cells.map((i, col) => [i, col] as const)) {
 				const prev = prevRaw[row]?.[col];
@@ -315,7 +314,7 @@ export default class CSVDocument {
 					if (prev.getRaw() != raw)
 						prev.setRaw(raw);
 				} else
-					this.raw[row][col] = value(raw, this);
+					this.raw[row][col] = new Value(raw, this);
 			}
 		}
 
@@ -351,7 +350,7 @@ export default class CSVDocument {
 		if (col) {
 			// Warning: I see a potential for bugs here.
 			for (const row of this.raw)
-				row.splice(col + 1, 0, value("", this));
+				row.splice(col + 1, 0, new Value("", this));
 
 			this.change = new Date();
 
@@ -362,7 +361,7 @@ export default class CSVDocument {
 			}));
 		} else {
 			for (const row of this.raw)
-				row.push(value("", this));
+				row.push(new Value("", this));
 
 			this.change = new Date();
 
@@ -377,14 +376,14 @@ export default class CSVDocument {
 	insertRow(row?: number) {
 		if (row) {
 			// Warning: I see a potential for bugs here.
-			this.raw.splice(row + 1, 0, new Array(this.#props.columnTypes.length).fill("").map(cell => value(cell, this)));
+			this.raw.splice(row + 1, 0, new Array(this.#props.columnTypes.length).fill("").map(cell => new Value(cell, this)));
 			this.change = new Date();
 
 			this.updateDocumentProperties(prev => ({
 				rowHeights: [...prev.rowHeights.slice(0, row + 1), DEFAULT_ROW_HEIGHT, ...prev.rowHeights.slice(row + 1)],
 			}));
 		} else {
-			this.raw.push(new Array(this.#props.columnTypes.length).fill("").map(cell => value(cell, this)));
+			this.raw.push(new Array(this.#props.columnTypes.length).fill("").map(cell => new Value(cell, this)));
 			this.change = new Date();
 
 			this.updateDocumentProperties(prev => ({
@@ -440,18 +439,11 @@ export default class CSVDocument {
 				?.onChangeOnce(raw => typeof cx.dependent.recompute == 'function' && cx.dependent.recompute?.(cx.dependent_address))
 				?.getComputedValue(cx.dependent_address);
 		} else {
-			const cell = (this.documentProperties.frontMatter.labelledCells ?? {})[query];
+			const cell = Selection.parse((this.documentProperties.frontMatter.labelledCells ?? {})[query] ?? query);
 
-			const match = (cell ?? query).match(/^([a-zA-Z]+)(\d+)$/);
+			if (!cell) return null;
 
-			if (!match)
-				return null;
-
-			const column = [...match[1].toLowerCase()]
-				.map(i => i.charCodeAt(0) - "a".charCodeAt(0))
-				.reduce((a, i) => a * 26 + i, 0);
-
-			return this.getValueAt({row: Number(match[2]), col: column}, false)
+			return this.getValueAt(cell, false)
 				?.onChangeOnce(raw => typeof cx.dependent.recompute == 'function' && cx.dependent.recompute?.(cx.dependent_address))
 				?.getComputedValue(cx.dependent_address);
 		}
