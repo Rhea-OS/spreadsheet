@@ -25,23 +25,6 @@ export interface FrontMatter extends Record<string, any> {
 
 type StringifiedCell = string;
 
-export interface Value {
-	isComputedValue: () => boolean,
-
-	setRaw(raw: string): void,
-
-	getRaw(): string,
-
-	onChange: (callback: (raw: string) => void) => () => void,
-	onChangeOnce: (callback: (raw: string) => void) => Value,
-
-	document: () => CSVDocument,
-
-	getComputedValue(addr: Selection.Cell): string | { err: string };
-
-	recompute(addr: Selection.Cell): void
-}
-
 export type Change = {
 	value: Value,
 	old: string, // Technically, we could omit this value, but doing so would result in undo/redoing being O(n) rather than O(1)
@@ -58,80 +41,90 @@ export type CellDependencyContext = {
 	dependencies: Value[]
 };
 
-export function value(raw: string, sheet: CSVDocument): Value {
-	const watches: ((raw: string) => void)[] = [];
-	const onChangeOnce: ((raw: string) => void)[] = [];
+export class Value {
+	private watches: ((raw: string) => void)[] = [];
+	private onChangeOnceHandlers: ((raw: string) => void)[] = [];
+	private prev: { raw: string, value: string };
 
-	const isComputedValue = () => raw.startsWith("=");
+	constructor(private raw: string, private sheet: CSVDocument) {
+		this.prev = {
+			raw, value: null as any
+		};
+	}
 
-	const prev: { raw: string, value: string } = {
-		raw, value: null as any
-	};
+	document(): CSVDocument {
+		return this.sheet;
+	}
 
-	let value: Value;
-	return value = {
-		document: () => sheet,
+	isComputedValue(): boolean {
+		return this.raw.startsWith("=");
+	}
 
-		isComputedValue: () => isComputedValue(),
-		setRaw: (data, noUpdateHistory = false) => {
-			if (data !== raw) {
-				const change: Change = {
-					value,
-					new: data,
-					old: raw
-				};
+	onChange(callback: (raw: string) => void): () => void {
+		this.watches.push(callback);
+		return () => this.watches.includes(callback) ? void this.watches.splice(this.watches.indexOf(callback), 1) : void 0
+	}
 
-				if (!noUpdateHistory)
-					sheet.pushChange(change);
+	onChangeOnce(callback: (raw: string) => void): Value {
+		this.onChangeOnceHandlers.push(callback);
+		return this;
+	}
 
-				for (const watch of watches)
-					watch(raw);
+	getComputedValue(addr: Selection.Cell): string | { err: string } {
+		if (!this.prev.value || this.prev.raw != this.raw)
+			try {
+				return Object.assign(this.prev, {
+					raw: this.raw,
+					value: this.isComputedValue() ? `${this.sheet.cx.evaluateStr(this.raw.slice(1), {
+						dependent_address: addr,
+						dependent: value,
+						dependencies: []
+					})}` : this.raw
+				}).value;
+			} catch (err) {
+				console.error(err);
+				return { err: err ? err.toString() : 'Unknown Error' };
 			}
 
-			raw = data;
+		return this.prev.value;
+	}
 
-			onChangeOnce.splice(0, onChangeOnce.length)
-				.forEach(i => i(raw));
-		},
-		getRaw: () => raw,
+	getRaw(): string {
+		return this.raw;
+	}
 
-		onChange: callback => {
-			watches.push(callback);
-			return () => watches.includes(callback) ? void watches.splice(watches.indexOf(callback), 1) : void 0
-		},
+	recompute(addr: Selection.Cell): void {
+		this.prev.value = this.isComputedValue() ? `${this.sheet.cx.evaluateStr(this.raw.slice(1), {
+			dependent_address: addr,
+			dependent: value,
+			dependencies: []
+		})}` : this.raw;
+	}
 
-		onChangeOnce: callback => {
-			onChangeOnce.push(callback);
-			return value;
-		},
+	setRaw(data: string, noUpdateHistory: boolean = false): void {
+		if (data !== this.raw) {
+			const change: Change = {
+				value: this,
+				new: data,
+				old: this.raw
+			};
 
-		getComputedValue(addr: Selection.Cell): string | { err: string } {
-			if (!prev.value || prev.raw != raw)
-				try {
-					return Object.assign(prev, {
-						raw,
-						value: isComputedValue() ? `${sheet.cx.evaluateStr(raw.slice(1), {
-							dependent_address: addr,
-							dependent: value,
-							dependencies: []
-						})}` : raw
-					}).value;
-				} catch (err) {
-					console.error(err);
-					return { err: err ? err.toString() : 'Unknown Error' };
-				}
+			if (!noUpdateHistory)
+				this.sheet.pushChange(change);
 
-			return prev.value;
-		},
-
-		recompute: addr => {
-			prev.value = isComputedValue() ? `${sheet.cx.evaluateStr(raw.slice(1), {
-				dependent_address: addr,
-				dependent: value,
-				dependencies: []
-			})}` : raw;
+			for (const watch of this.watches)
+				watch(this.raw);
 		}
-	};
+
+		this.raw = data;
+
+		this.onChangeOnceHandlers.splice(0, this.onChangeOnceHandlers.length)
+			.forEach(i => i(this.raw));
+	}
+}
+
+export function value(raw: string, sheet: CSVDocument): Value {
+	return new Value(raw, sheet);
 }
 
 const andThen = <T, R>(cb: (x: T) => R, x?: T): R | null => x ? cb(x) : null;
