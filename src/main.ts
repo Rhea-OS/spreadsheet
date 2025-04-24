@@ -41,10 +41,6 @@ export default class SpreadsheetPlugin extends obs.Plugin {
                 else
                     return !!this.app.workspace.getActiveViewOfType(SpreadsheetView)
             },
-            hotkeys: [{
-                key: "z",
-                modifiers: ['Ctrl']
-            }],
             icon: "undo",
             id: "undo",
             name: "Undo",
@@ -58,10 +54,6 @@ export default class SpreadsheetPlugin extends obs.Plugin {
                 else
                     return !!this.app.workspace.getActiveViewOfType(SpreadsheetView);
             },
-            hotkeys: [{
-                key: "y",
-                modifiers: ['Ctrl']
-            }],
             icon: "redo",
             id: "redo",
             name: "Redo",
@@ -75,10 +67,6 @@ export default class SpreadsheetPlugin extends obs.Plugin {
                 else
                     return !!this.app.workspace.getActiveViewOfType(SpreadsheetView);
             },
-            hotkeys: [{
-                key: "x",
-                modifiers: ['Ctrl']
-            }],
             icon: "cut",
             id: "cut",
             name: "Cut",
@@ -92,10 +80,6 @@ export default class SpreadsheetPlugin extends obs.Plugin {
                 else
                     return !!this.app.workspace.getActiveViewOfType(SpreadsheetView);
             },
-            hotkeys: [{
-                key: "c",
-                modifiers: ['Ctrl']
-            }],
             icon: "copy",
             id: "copy",
             name: "Copy",
@@ -109,10 +93,6 @@ export default class SpreadsheetPlugin extends obs.Plugin {
                 else
                     return !!this.app.workspace.getActiveViewOfType(SpreadsheetView);
             },
-            hotkeys: [{
-                key: "v",
-                modifiers: ['Ctrl']
-            }],
             icon: "paste",
             id: "paste",
             name: "Paste",

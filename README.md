@@ -27,7 +27,7 @@ The syntax is simple, yet extensible through [[#extensions|extensions]], featuri
 * **objects**: `([a=1,b=2,c=3]).b==3`
 
 > **Note on extensibility:** The formula language is designed to be extensible. You can define your own operators,
-> constants, functions, and integrations with the host system.
+> constants, functions, and integrations with the host system, as well as capture addresses and handle them as necessary.
 >
 > The formula language provides no functionality of its own. The list of standard operators is defined client-side.
 

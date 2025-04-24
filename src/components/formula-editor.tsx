@@ -1,10 +1,14 @@
 import React from 'react';
+import * as dom from 'react-dom/client';
+import * as obs from 'obsidian';
+import * as icons from 'lucide-react';
 
 import {Value} from "../csv.js";
 import {StateHolder} from "../main.js";
 import {Selection} from "../selection.js";
 import {computedValue} from "../inline.js";
 import * as expr from 'expression';
+import ListBox from './listbox.js';
 
 const toIter = function* (walker: TreeWalker): Generator<Node> {
     for (let node = walker.nextNode(); node; node = walker.nextNode())
@@ -16,16 +20,61 @@ export function EditableTableCell(props: { cell: Value, edit?: boolean, sheet: S
                 onDoubleClick={_ => props.sheet.state.dispatch("selection-change", {
                     selection: [props.addr],
                     activeCell: props.addr
-                })}>{props.edit ? <>
-        <FormulaEditor cell={props.cell} blur={() => props.sheet.state.dispatch("selection-change", {
-            selection: [props.addr],
-            activeCell: null
-        })}/>
-    </> : <>
+                })}>
+        {props.edit ? <>
+            <FormulaEditor cell={props.cell} blur={() => props.sheet.state.dispatch("selection-change", {
+                selection: [props.addr],
+                activeCell: null
+            })}/>
+        </> : <>
         <span>
             {computedValue(props.cell, props.addr)}
         </span>
-    </>}</div>
+        </>}
+
+        <button className={"floating-action-button"} onClick={e => contextMenu(e, props.cell, props.addr)}>
+            <icons.EllipsisVertical size={11}/>
+        </button>
+    </div>
+}
+
+export function contextMenu(e: React.MouseEvent<HTMLButtonElement>, cell: Value, addr: Selection.Cell) {
+    e.preventDefault();
+
+    const menu = new obs.Menu();
+
+    menu.addItem(item => item
+        .setIcon("pencil-line")
+        .setTitle("Set label")
+        .onClick(async () => {
+            const cellAddr = Selection.stringify(addr).toLowerCase();
+            const labels = Object.entries(cell.document().documentProperties.frontMatter.labelledCells ?? {})
+                .filter(([a, i]) => i.contains(cellAddr))
+                .map(i => i[0]);
+
+            if (labels.length <= 0)
+                labels.push('');
+
+            await LabelEditor.editor(label => {
+                // The label is taken if it's in the list but it's value is not `cellAddr`
+                const labels = cell.document().documentProperties.frontMatter.labelledCells;
+
+                return (!!label) && (!!labels) && (label in labels && labels[label]?.toLowerCase() !== cellAddr);
+            }, labels)
+                .then(labels => cell.document().updateDocumentProperties(doc => {
+                    for (const label of labels)
+                        (doc.frontMatter.labelledCells ??= {})[label] = cellAddr;
+
+                    return doc
+                }));
+        }));
+
+    const target = e.currentTarget.getBoundingClientRect();
+
+    menu.showAtPosition({
+        x: target.x + target.width,
+        y: target.y
+    });
 }
 
 export function FormulaEditor(props: { cell: Value, blur: () => void }) {
@@ -221,5 +270,67 @@ export class Editor extends EventTarget {
     emit<K extends keyof EventTypes>(type: K, detail: EventTypes[K]): boolean {
         const event = new CustomEvent(type, {detail});
         return this.dispatchEvent(event);
+    }
+}
+
+export class LabelEditor extends obs.Modal {
+    private root: dom.Root;
+
+    constructor(private isInUse: (label: string) => boolean, private labels: string[] = [''], private onSubmit: (labels: string[]) => void) {
+        super((window as any as { app: obs.App }).app);
+
+        this.root = dom.createRoot(this.contentEl);
+    }
+
+    onOpen() {
+        const Root = this.content.bind(this);
+        this.root.render(<Root/>);
+    }
+
+    content() {
+        const [labels, setLabels] = React.useState<string[]>(this.labels);
+
+        return <form onSubmit={e => {
+            e.preventDefault();
+
+            this.onSubmit(new FormData(e.currentTarget).getAll('label') as string[]);
+
+            this.close();
+        }}>
+            <ListBox controls={{
+                onAdd() {
+                    setLabels(prev => [...prev, '']);
+                },
+
+                onDelete(item) {
+                    setLabels(prev => [...prev.slice(0, item), ...prev.slice(item + 1)])
+                }
+            }}>
+                {labels.map((label, a) => <div className={"flex fill centre"} key={`label-${a}`}>
+                    <input className="flat fill"
+                           key={`cell-label-${a}`} name="label" type={"text"} value={label}
+                           onChange={e => setLabels(prev => [
+                               ...prev.slice(0, a),
+                               e.target.value,
+                               ...prev.slice(a + 1)
+                           ])}/>
+
+                    <span title={`This label is already in use. By proceeding, the cell originally called '${label}' will have the label removed.`}>
+                        {this.isInUse(label) ? <icons.TriangleAlert size={12} color={'var(--text-warning)'} />: null}
+                    </span>
+                </div>)}
+            </ListBox>
+
+            <button type={"submit"}>{"Save"}</button>
+        </form>
+    }
+
+    onClose() {
+        this.root.unmount();
+        super.onClose();
+    }
+
+    static editor(isInUse: (label: string) => boolean, labels: string[] = ['']): Promise<string[]> {
+        return new Promise(ok => new LabelEditor(isInUse, labels, labels => ok(labels)).open());
     }
 }

@@ -343,6 +343,12 @@ export namespace Selection {
 
         return reduced;
     }
+
+    export function stringify(cell: Cell): string {
+        const toLetterString = (num: number): string => num >= 26 ? `${toLetterString(num / 26 - 1)}${String.fromCharCode('A'.charCodeAt(0) + num % 26)}` : `${String.fromCharCode('A'.charCodeAt(0) + num % 26)}`;
+
+        return `${toLetterString(cell.col)}${cell.row.toFixed()}`
+    }
 }
 
 export default function SelectionIndicator({selection, sheet}: {

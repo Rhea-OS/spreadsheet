@@ -79,3 +79,7 @@ textarea.command-editor {
 .fill {
     flex: 1;
 }
+
+.centre {
+    align-items: center;
+}

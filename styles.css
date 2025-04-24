@@ -49,6 +49,8 @@
 
     align-items: stretch;
     justify-content: stretch;
+
+    position: relative;
 }
 
 .table-header-cell, .top-left-corner, .row {
@@ -82,7 +84,7 @@
     font-size: inherit;
 }
 
-.table-cell-inner > :is(textarea, input, button, select, div[contenteditable="true"]) {
+.table-cell-inner > :is(textarea, input, button:not(.floating-action-button), select, div[contenteditable="true"]), input.flat {
     border-radius: 0;
     flex: 1;
     width: 100%;
@@ -294,4 +296,33 @@ input[type="text"].column-title-rename {
 
 .formula-editor .addr:is(:nth-of-type(16n+15), :nth-of-type(16n+16)) {
     color: var(--color-pink);
+}
+
+.table-cell-inner:hover .floating-action-button {
+    display: block;
+}
+
+.floating-action-button {
+    z-index: 4000;
+    display: none;
+
+    position: absolute;
+
+    top: 0;
+    right: 0;
+
+    padding: var(--size-2-2);
+
+    min-width: 0;
+    min-height: 0;
+    width: auto;
+    height: auto;
+    line-height: 100%;
+}
+
+input[type="text"].flat:focus, input[type="text"].flat {
+    background: transparent;
+    box-shadow: none;
+    border: none;
+    cursor: text;
 }
