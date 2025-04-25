@@ -62,7 +62,7 @@ export const tools = {
         type: 'button',
         label: 'Filter',
         description: 'Filter viewport',
-        icon: 'Filter',
+        icon: 'Filter' as any,
         onClick: sheet => void 0
     },
     'group': {

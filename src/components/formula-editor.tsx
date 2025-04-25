@@ -106,7 +106,7 @@ interface EventTypes {
 export class Editor extends EventTarget {
     static DEBOUNCE_TIME: number = 200; // .2 sec
 
-    constructor(readonly el: HTMLDivElement, private readonly cx: expr.Context, input: string = '') {
+    constructor(readonly el: HTMLDivElement, private readonly cx: expr.Context<expr.DataSource>, input: string = '') {
         super();
 
         this.el.tabIndex = 0;

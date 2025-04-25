@@ -4,12 +4,7 @@
     "version": "0.1.0",
     "type": "module",
     "dependencies": {
-        "@codemirror/autocomplete": "latest",
-        "@codemirror/language": "latest",
-        "@codemirror/state": "latest",
-        "@codemirror/view": "latest",
         "@j-cake/jcake-utils": "latest",
-        "@lezer/highlight": "latest",
         "@react-hook/event": "latest",
         "@react-hook/mouse-position": "latest",
         "@react-hook/resize-observer": "latest",
