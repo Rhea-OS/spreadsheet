@@ -75,7 +75,7 @@ export class Value {
 			try {
 				return Object.assign(this.prev, {
 					raw: this.raw,
-					value: this.isComputedValue() ? `${this.sheet.cx.evaluateStr(this.raw.slice(1), Selection.stringify(addr))}` : this.raw
+					value: this.isComputedValue() ? this.sheet.cx.evaluateStr(this.raw.slice(1), Selection.stringify(addr)) : this.raw
 				}).value;
 			} catch (err) {
 				console.error(err);
@@ -115,10 +115,6 @@ export class Value {
 	}
 }
 
-// export function value(raw: string, sheet: CSVDocument): Value {
-// 	return new Value(raw, sheet);
-// }
-
 export interface DocumentProperties {
 	frontMatter: FrontMatter;
 
@@ -136,7 +132,7 @@ export interface DocumentProperties {
 export default class CSVDocument {
 	raw: Value[][] = [[]];
 
-	cx: expr.Context & { dependencyContext: { [cx in StringifiedCell]: CellDependencyContext } };
+	cx: expr.Context<expr.DataSource> & { dependencyContext: { [cx in StringifiedCell]: CellDependencyContext } };
 	undoStack: Snapshot[] = [];
 	redoStack: Snapshot[] = [];
 
@@ -160,16 +156,17 @@ export default class CSVDocument {
 	private readonly notifyChange: (() => void);
 
 	constructor() {
-		this.cx = Object.assign(new expr.Context(new expr.DataSource({
-			query: (cx: StringifiedCell, query: string) => {
+		this.cx = Object.assign(new expr.Context({
+			doc: this,
+			query(this: expr.DataSource & { doc: CSVDocument }, query: string, cx: StringifiedCell) {
 				const dependent = Selection.parse(cx) ?? { row: 0, col: 0 };
-				return this.query(query, this.cx.dependencyContext[cx] ??= {
+				return this.doc.query(query, this.doc.cx.dependencyContext[cx] ??= {
 					dependent_address: dependent,
-					dependent: this.getValueAt(dependent, true)!,
+					dependent: this.doc.getValueAt(dependent, true)!,
 					dependencies: []
 				} satisfies CellDependencyContext);
 			},
-		})), {
+		}), {
 			dependencyContext: {}
 		});
 
